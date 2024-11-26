@@ -1,0 +1,125 @@
+     1                                  [org 0x10000] ; will be loaded immediately after boot sector and loaded by boot.s
+     2                                  [bits 32] ; this is code running after our switch to protected mode
+     3                                  
+     4                                  section .kernel:
+     5                                  
+     6                                  ;; Entry point
+     7                                  kernel_init:
+     8                                      ; First thing to do is set all the segment selectors to 0x10, which is the data segment we've set up
+     9 00000000 66B81000                    mov ax, 0x10
+    10 00000004 8ED8                        mov ds, ax
+    11 00000006 8EC0                        mov es, ax
+    12 00000008 8ED0                        mov ss, ax
+    13                                  
+    14                                  setup_stack:
+    15                                      ; Locate stack at 0x5000
+    16 0000000A BCFFFF0000                  mov esp, 0xFFFF ; Stack pointer
+    17 0000000F BDFFFF0000                  mov ebp, 0xFFFF ; Base pointer
+    18                                  
+    19                                  kernel_hello:
+    20 00000014 BE[AD000000]                mov esi, kernel_string
+    21 00000019 B504                        mov ch, 0x04
+    22 0000001B E80C000000                  call print
+    23 00000020 BE[E3000000]                mov esi, overflow_string
+    24 00000025 E802000000                  call print
+    25 0000002A EBFE                        jmp $
+    26                                  ;; TODO:
+    27                                  ;; 1. Figure out how to print stuff to the screen in protected mode
+    28                                  ;; 2. Setup IDT and use to handle exceptions/timer interrupts
+    29                                  ;; 3. Link C library, figure out how to compile and link C files
+    30                                  
+    31                                  %include "src/print.s"
+     1                              <1> ;; Utilities for printing strings. Also keeps track of current cursor position.
+     2                              <1> 
+     3                              <1> VIDEO_MEMORY equ 0xB8000
+     4                              <1> VIDEO_COLS equ 80
+     5                              <1> VIDEO_ROWS equ 25
+     6                              <1> 
+     7                              <1> ;; print
+     8                              <1> ;; esi - address of null-terminated string
+     9                              <1> ;; ch - color of text to print, first 3 bits = background, last 5 bits = foreground
+    10                              <1> print:
+    11 0000002C 56                  <1>     push esi ; Source of string
+    12 0000002D 57                  <1>     push edi ; Destination address (in video memory)
+    13 0000002E 52                  <1>     push edx
+    14 0000002F 51                  <1>     push ecx ; ch: Text color param / cl: Character read from string 
+    15 00000030 50                  <1>     push eax ; Temp register
+    16                              <1>     _set_pos:
+    17 00000031 B850000000          <1>         mov eax, VIDEO_COLS     ; EAX = num cols per row
+    18 00000036 F725[A8000000]      <1>         mul dword [cursor_row]   ; EAX = index to start of current row
+    19 0000003C 0305[A4000000]      <1>         add eax, [cursor_col]   ; EAX = index to cursor position
+    20 00000042 D1E0                <1>         shl eax, 1              ; EAX = offset in text buffer
+    21 00000044 0500800B00          <1>         add eax, VIDEO_MEMORY   ; EAX = address of character to modify
+    22 00000049 89C7                <1>         mov edi, eax
+    23                              <1>     _print_char:
+    24 0000004B 8A0E                <1>         mov cl, [esi] ; read character
+    25 0000004D 80F900              <1>         cmp cl, 0x0 ; check if null
+    26 00000050 742C                <1>         je _complete
+    27 00000052 80F90A              <1>         cmp cl, `\n` ; check if newline
+    28 00000055 7414                <1>         je _newline
+    29 00000057 880F                <1>         mov [edi], cl ; 
+    30 00000059 886F01              <1>         mov [edi+1], ch ;
+    31                              <1>         ; move to next char
+    32 0000005C FF05[A4000000]      <1>         inc dword [cursor_col]
+    33 00000062 833D[A4000000]50    <1>         cmp dword [cursor_col], VIDEO_COLS
+    34 00000069 7C10                <1>         jl _continue ; If overflowed available columns, go to a new line
+    35                              <1>     _newline:
+    36 0000006B C705[A4000000]0000- <1>         mov dword [cursor_col], 0
+    36 00000073 0000                <1>
+    37 00000075 FF05[A8000000]      <1>         inc dword [cursor_row]
+    38                              <1>     _continue:
+    39 0000007B 46                  <1>         inc esi
+    40 0000007C EBB3                <1>         jmp _set_pos
+    41                              <1>     _complete:
+    42                              <1>     _update_cursor:
+    43                              <1>         ; Calculate offset
+    44 0000007E 89F9                <1>         mov ecx, edi ; Take address we are using to set VGA data
+    45 00000080 81E900800B00        <1>         sub ecx, VIDEO_MEMORY ; Subtract this from start of buffer
+    46 00000086 D1E9                <1>         shr ecx, 1 ; Divide by two to get the offset
+    47                              <1> 
+    48                              <1>         ;; VGA registers are accessed by providing an address through the address register and data registers:
+    49                              <1>         ;; Address - 3d4h
+    50                              <1>         ;; Data - 3d5h
+    51                              <1>         
+    52                              <1>         ; First, we send the value of the register we want to access (0x0F = Cursor low register)
+    53 00000088 66BAD403            <1>         mov dx, 0x03d4 ; Address
+    54 0000008C B00F                <1>         mov al, 0x0F ; Low register
+    55 0000008E EE                  <1>         out dx, al
+    56                              <1> 
+    57                              <1>         ; We then send 
+    58 0000008F 6642                <1>         inc dx ; Now 0x3d5 (data)
+    59 00000091 88C8                <1>         mov al, cl ; Send low byte of offset
+    60 00000093 EE                  <1>         out dx, al
+    61                              <1> 
+    62 00000094 664A                <1>         dec dx ; Now 0x3d4 (Address)
+    63 00000096 B00E                <1>         mov al, 0x0E ; High register
+    64 00000098 EE                  <1>         out dx, al
+    65                              <1>         
+    66 00000099 6642                <1>         inc dx ; Now 0x3d5 (data)
+    67 0000009B 88E8                <1>         mov al, ch ; Send high byte of offset
+    68 0000009D EE                  <1>         out dx, al
+    69                              <1>     _done:
+    70 0000009E 58                  <1>         pop eax
+    71 0000009F 59                  <1>         pop ecx
+    72 000000A0 5A                  <1>         pop edx
+    73 000000A1 5F                  <1>         pop edi
+    74 000000A2 5E                  <1>         pop esi
+    75 000000A3 C3                  <1>         ret
+    76                              <1> 
+    77 000000A4 00000000            <1> cursor_col dd 0
+    78 000000A8 00000000            <1> cursor_row dd 0
+    79                              <1>         
+    32                                  
+    33 000000AC FB                      sti ; Enable interrupts    
+    34 000000AD 48656C6C6F206B6572-     kernel_string dw `Hello kernel!\nThis should appear on the next line.\n`, 0
+    34 000000B6 6E656C210A54686973-
+    34 000000BF 2073686F756C642061-
+    34 000000C8 7070656172206F6E20-
+    34 000000D1 746865206E65787420-
+    34 000000DA 6C696E652E0A000000 
+    35 000000E3 74657374696E67206F-     overflow_string times 16 db "testing overflow "
+    35 000000EC 766572666C6F7720-  
+    35 000000EC <rep 10h>          
+    36 000001F3 00                      db 0
+    37                                  
+    38 000001F4 90<rep Ch>              times (0x200 - ($ - $$)) nop
