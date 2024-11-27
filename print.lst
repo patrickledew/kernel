@@ -1,0 +1,113 @@
+     1                                  section .text
+     2                                  ;; Utilities for printing strings. Also keeps track of current cursor position.
+     3                                  global print
+     4                                  global print_asm
+     5                                  
+     6 00000000 5369676E6174757265-     dw "Signature of print.s"
+     6 00000009 206F66207072696E74-
+     6 00000012 2E73               
+     7                                  VIDEO_MEMORY equ 0xB8000
+     8                                  VIDEO_COLS equ 80
+     9                                  VIDEO_ROWS equ 25
+    10                                  
+    11                                  ;; print(char* string, uint8_t color_code)
+    12                                  ;; Intended to be called from c, so stack arguments are used
+    13                                  ;; esp + 0x00: pushed base pointer
+    14                                  ;; esp + 0x04: ret addr
+    15                                  ;; esp + 0x08: string
+    16                                  ;; esp + 0x0C: color_code
+    17                                  print:
+    18 00000014 55                          push ebp
+    19 00000015 89E5                        mov ebp, esp
+    20                                  
+    21 00000017 8B742408                    mov esi, [esp+0x8]
+    22 0000001B 8A6C240C                    mov ch, [esp+0xC]
+    23 0000001F E802000000                  call print_asm
+    24                                  
+    25 00000024 C9                          leave ;; eq to mov esp, ebp; pop ebp
+    26 00000025 C3                          ret
+    27                                  
+    28                                  ;; print_asm
+    29                                  ;; esi - address of null-terminated string
+    30                                  ;; ch - color of text to print, first 3 bits = background, last 5 bits = foreground
+    31                                  
+    32                                  print_asm:
+    33 00000026 56                          push esi ; Source of string
+    34 00000027 57                          push edi ; Destination address (in video memory)
+    35 00000028 50                          push eax ; Temp register
+    36 00000029 53                          push ebx ; Used for set_vga_crtc_reg
+    37 0000002A 51                          push ecx ; ch: Text color param / cl: Character read from string 
+    38                                      _set_pos:
+    39 0000002B B850000000                      mov eax, VIDEO_COLS     ; EAX = num cols per row
+    40 00000030 F725[C0000000]                  mul dword [cursor_row]   ; EAX = index to start of current row
+    41 00000036 0305[BC000000]                  add eax, [cursor_col]   ; EAX = index to cursor position
+    42 0000003C D1E0                            shl eax, 1              ; EAX = offset in text buffer
+    43 0000003E 0500800B00                      add eax, VIDEO_MEMORY   ; EAX = address of character to modify
+    44 00000043 89C7                            mov edi, eax
+    45                                      _print_char:
+    46 00000045 8A0E                            mov cl, [esi] ; read character
+    47 00000047 80F900                          cmp cl, 0x0 ; check if null
+    48 0000004A 743F                            je _complete
+    49 0000004C 80F90A                          cmp cl, `\n` ; check if newline
+    50 0000004F 7414                            je _newline
+    51 00000051 880F                            mov [edi], cl ; 
+    52 00000053 886F01                          mov [edi+1], ch ;
+    53                                          ; move to next char
+    54 00000056 FF05[BC000000]                  inc dword [cursor_col]
+    55 0000005C 833D[BC000000]50                cmp dword [cursor_col], VIDEO_COLS
+    56 00000063 7C23                            jl _continue ; If overflowed available columns, go to a new line
+    57                                      _newline:
+    58 00000065 C705[BC000000]0000-             mov dword [cursor_col], 0
+    58 0000006D 0000               
+    59 0000006F FF05[C0000000]                  inc dword [cursor_row]
+    60 00000075 833D[C0000000]19                cmp dword [cursor_row], VIDEO_ROWS
+    61 0000007C 7C0A                            jl _continue ; If overflowed available rows, loop back from the beginning
+    62                                      _wrap:
+    63 0000007E C705[C0000000]0000-             mov dword [cursor_row], 0
+    63 00000086 0000               
+    64                                      _continue:
+    65 00000088 46                              inc esi
+    66 00000089 EBA0                            jmp _set_pos
+    67                                      _complete:
+    68                                      _update_cursor:
+    69                                          ; Calculate offset
+    70 0000008B 89FB                            mov ebx, edi ; Take address we are using to set VGA data
+    71 0000008D 81EB00800B00                    sub ebx, VIDEO_MEMORY ; Subtract this from start of buffer
+    72 00000093 D1EB                            shr ebx, 1 ; Divide by two to get the offset
+    73 00000095 B00F                            mov al, 0x0F ; Register 0x0F (Cursor Low Register)
+    74 00000097 E811000000                      call set_vga_crtc_reg
+    75 0000009C 66C1EB08                        shr bx, 8 ;; Move bh -> bl
+    76 000000A0 FEC8                            dec al ; Register 0x0E (Cursor high register
+    77 000000A2 E806000000                      call set_vga_crtc_reg
+    78                                      _done:
+    79 000000A7 59                              pop ecx
+    80 000000A8 5B                              pop ebx
+    81 000000A9 58                              pop eax
+    82 000000AA 5F                              pop edi
+    83 000000AB 5E                              pop esi
+    84 000000AC C3                              ret
+    85                                  
+    86                                  ;; Write a value to VGA CRTC (CRT control) registers
+    87                                  ;; This is used for controlling cursor position
+    88                                  ;; al: Register code (e.g. 0x0F and 0x0E are cursor position low/high registers)
+    89                                  ;; bl: Value to write to register
+    90                                  ;;
+    91                                  ;; VGA registers are accessed by providing an address to a register, then sending data to write to that register.:
+    92                                  ;; Address - 3d4h
+    93                                  ;; Data - 3d5h
+    94                                  set_vga_crtc_reg:
+    95 000000AD 52                          push edx
+    96 000000AE 50                          push eax
+    97 000000AF 66BAD403                        mov dx, 0x03d4 ; 0x03d4 - CRTC address I/O port
+    98 000000B3 EE                              out dx, al     ; Set address to register code
+    99 000000B4 88D8                            mov al, bl
+   100 000000B6 6642                            inc dx         ; 0x03d5 - CRTC data I/O port
+   101 000000B8 EE                              out dx, al     ; Set data of addressed register to al
+   102 000000B9 58                          pop eax
+   103 000000BA 5A                          pop edx
+   104 000000BB C3                          ret
+   105                                  
+   106                                  
+   107 000000BC 00000000                cursor_col dd 0
+   108 000000C0 00000000                cursor_row dd 0
+   109                                          

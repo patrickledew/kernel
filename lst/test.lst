@@ -1,0 +1,16 @@
+     1                                  [bits 32]
+     2                                  
+     3                                  global _start:
+     4                                      _start:
+     5 00000000 EB02                    jmp test
+     6 00000002 FFFF                    dw 0xFFFF
+     7                                  
+     8                                  test:
+     9 00000004 B801000000                  mov eax, 1
+    10 00000009 BB02000000                  mov ebx, 2
+    11 0000000E 01D8                        add eax, ebx
+    12 00000010 A334120000                  mov [0x1234], eax
+    13 00000015 EBFE                        jmp $
+    14                                  
+    15                                  
+    16 00000017 0DF0AD0B<rep 64h>       times 100 dd 0xBADF00D

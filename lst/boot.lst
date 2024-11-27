@@ -129,7 +129,7 @@
    129 000000A0 00000000                    dd 0 ; base of GDT record
    130                                  
    131                                  gdt:
-   132                                      %include "src/boot/gdt.s"
+   132                                      %include "src/gdt.s"
    133                              <1> ;; Global Descriptor Table
    134                              <1> ;; Contains segment descriptors, which are data structures that specify the location, size,
    135                              <1> ;; and other information about memory segments. These can be accessed via jmp instructions, e.g.
