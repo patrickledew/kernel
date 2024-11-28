@@ -14,7 +14,7 @@ VIDEO_ROWS equ 25
 ;; esp + 0x04: ret addr
 ;; esp + 0x08: string
 ;; esp + 0x0C: color_code
-print:
+print_old:
     push ebp
     mov ebp, esp
 

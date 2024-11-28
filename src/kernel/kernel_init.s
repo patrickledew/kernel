@@ -1,4 +1,4 @@
-section .text
+section .kernel_init
 [bits 32] ; this is code running after our switch to protected mode
 
 global _start

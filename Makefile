@@ -3,7 +3,7 @@ AFLAGS_16 = -f bin
 AFLAGS_32 = -f elf -g -F stabs
 
 CC = gcc
-CFLAGS = -m32 -c -ffreestanding
+CFLAGS = -m32 -c -ffreestanding -mgeneral-regs-only
 
 LD = ld
 LDARGS = -T link.ld -melf_i386
@@ -23,6 +23,8 @@ TARGET = $(BUILDDIR)/main.img
 CC_SOURCES := $(wildcard $(SOURCEDIR)/*.c)
 AS_SOURCES := $(wildcard $(SOURCEDIR)/*.s)
 
+HEADERS := $(wildcard $(SOURCEDIR)/*.h)
+
 
 OBJECTS := $(patsubst $(SOURCEDIR)/%.c, $(BUILDDIR)/%.o, $(CC_SOURCES))
 OBJECTS += $(patsubst $(SOURCEDIR)/%.s, $(BUILDDIR)/%.o, $(AS_SOURCES))
@@ -39,7 +41,7 @@ $(BOOTLOADER): $(BOOTSOURCE)
 $(BUILDDIR)/%.o: $(SOURCEDIR)/%.s
 	$(AS) $(AFLAGS_32) $< -o $@
 $(BUILDDIR)/%.o: $(SOURCEDIR)/%.c
-	$(CC) $(CFLAGS) $< -o $@
+	$(CC) $(CFLAGS) -I $(SOURCEDIR) $< -o $@
 
 $(KERNEL): $(OBJECTS)
 	$(LD) $(LDARGS) -o $(BUILDDIR)/kernel.elf $(OBJECTS)
