@@ -2,6 +2,7 @@
 #include "util/print.h"
 #include "util/portio.h"
 #include "util/logging.h"
+#include "util/keyboard.h"
 #define NUM_IDT_DESCRIPTORS 1
 
 // The IDT Descriptor (IDTR) tells the LIDT instruction where the IDT is located and how big it is.
@@ -45,15 +46,15 @@ DEF_ISR_ERR_STUB(0x1E);     // #SX Security exception
 DEF_ISR_STUB(0x1F);         // Reserved
 
 // Hardware interrupts (IRQs) - 0x20-0x2F
-DEF_ISR_STUB_IRQ(0x20);
-DEF_ISR_STUB_IRQ(0x21);
+DEF_ISR_STUB_IRQ(0x20); // Timer
+DEF_ISR_STUB_IRQ(0x21); // Keyboard
 DEF_ISR_STUB_IRQ(0x22);
 DEF_ISR_STUB_IRQ(0x23);
 DEF_ISR_STUB_IRQ(0x24);
 DEF_ISR_STUB_IRQ(0x25);
 DEF_ISR_STUB_IRQ(0x26);
 DEF_ISR_STUB_IRQ(0x27);
-DEF_ISR_STUB_IRQ(0x28); // Timer
+DEF_ISR_STUB_IRQ(0x28);
 DEF_ISR_STUB_IRQ(0x29);
 DEF_ISR_STUB_IRQ(0x2A);
 DEF_ISR_STUB_IRQ(0x2B);
@@ -280,17 +281,8 @@ void timer(interrupt_frame* frame) {
 
 __attribute__((interrupt))
 void keyboard_isr(interrupt_frame* frame) {
-    set_color(0x0C);
-    log_info("Keyboard interrupt triggered.");
-    uint8_t kb_status;
-    // Wait until kb is ready to be read
-    while (!(kb_status & 0x01)) {
-        inb(KB_STATUS, kb_status);
-    }
-    uint8_t kb_output;
-    inb(KB_OUTPUT, kb_output);
-    print_num_x(kb_output, 16, TRUE, 2);
-    print("\n");
+    // Go to dedicated keyboard handler function
+    keyboard_handler();
 
     pic_eoi(); // required for IRQs
 }

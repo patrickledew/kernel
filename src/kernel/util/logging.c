@@ -1,10 +1,7 @@
 #include "print.h"
 
 void log_info(char* str) {
-    uint8_t prev_color = get_color();
-    set_color(0x0F);
     println(str);
-    set_color(prev_color);
 }
 
 void log_number(char* str, unsigned int num, unsigned int radix) {

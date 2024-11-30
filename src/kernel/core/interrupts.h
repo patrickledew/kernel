@@ -24,12 +24,6 @@
 #define PIC2_ICW_3 0x02 // Slave - attached to IRQ 2
 #define PIC_ICW_4 0b00000001
 
-// Keyboard defines
-#define KB_COMMAND 0x64
-#define KB_DATA 0x60
-#define KB_OUTPUT 0x60
-#define KB_STATUS 0x64
-
 typedef struct{
     uint16_t size;
     uint32_t offset;

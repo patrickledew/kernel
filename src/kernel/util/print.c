@@ -23,7 +23,7 @@ void print(char* str) {
             continue;
         }
         // Print the next character
-        print_char_at(*str++, _current_color, _row, _col);
+        print_char_at(*(str++), _current_color, _row, _col);
 
         _col++;
         if (_col > VIDEO_COLS) {

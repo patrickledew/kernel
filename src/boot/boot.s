@@ -18,7 +18,7 @@ load_kernel:
     ; kernel should be on disk immediately after this boot sector, from 0x200 onwards
     ; we want to load this to memory address 0x10000
     mov ah, 02h ; read sectors from drive - apparently 42h has more functionality
-    mov al, 0x10 ; Copy up to 16 sectors (16 * 512 bytes)
+    mov al, 0x80 ; Copy up to 32 sectors (32 * 512 bytes)
     mov ch, 0 ; Cylinder 0
     mov cl, 2 ; 2nd sector, containing kernel
     mov dh, 0 ; Head 0
