@@ -1,8 +1,13 @@
 #ifndef TYPES_H
 #define TYPES_H
 
-#define uint8_t char
-#define uint16_t unsigned short int
-#define uint32_t unsigned int
+typedef char uint8_t;
+typedef unsigned short int uint16_t;
+typedef unsigned int uint32_t;
+
+typedef _Bool bool;
+
+#define FALSE 0
+#define TRUE 1
 
 #endif

@@ -1,26 +1,20 @@
 // C Entry point for kernel. Invoked from kernel_init.s.
-#include "print.h"
-#include "interrupts.h"
-void fibb(int n) {
-    int a = 1;
-    int b = 1;
-
-    for (int i = 0; i < n; i++) {
-        set_cursor_pos(i, 40);
-        print_num(a, 10, 0x0F);
-        int t = b;
-        b = a + b;
-        a = t;
-    }
-}
+#include "util/logging.h"
+#include "core/interrupts.h"
 
 void kmain() {
     fill_screen(' ', 0x00);
-    print("kmain: initializing IDT...", 0x0F);
+    log_info("kmain: initializing IDT...");
     init_idt(); // Initialize interrupt descriptor table (IDT)
-    // print("Hello world! This is my new kernel!\n", 0x0D);
-    // fibb(VIDEO_ROWS);
-    // __asm__ ("mov %eax, 0");
-    // __asm__ ("div 0");
-    while(1) {}
+    
+    // induce GP fault
+    // uint32_t x = 0xFFFFFFFF;
+    // __asm__("mov %0, %%cr4" : : "a"(x));
+
+    char c = 'A';
+    print_char_at(c++, 0x0D, VIDEO_ROWS-1, VIDEO_COLS-1);
+
+    while(1) {
+        print_char_at(c++, 0x0D, VIDEO_ROWS-1, VIDEO_COLS-1);
+    }
 }

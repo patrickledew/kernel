@@ -20,8 +20,8 @@ KERNEL = $(BUILDDIR)/kernel.bin
 TARGET = $(BUILDDIR)/main.img
 
 
-CC_SOURCES := $(wildcard $(SOURCEDIR)/*.c)
-AS_SOURCES := $(wildcard $(SOURCEDIR)/*.s)
+CC_SOURCES := $(wildcard $(SOURCEDIR)/*.c) $(wildcard $(SOURCEDIR)/*/*.c)
+AS_SOURCES := $(wildcard $(SOURCEDIR)/*.s) $(wildcard $(SOURCEDIR)/*/*.s)
 
 HEADERS := $(wildcard $(SOURCEDIR)/*.h)
 
@@ -39,11 +39,14 @@ $(BOOTLOADER): $(BOOTSOURCE)
 	$(AS) $(AFLAGS_16) $< -o $@
 
 $(BUILDDIR)/%.o: $(SOURCEDIR)/%.s
+	@mkdir -p $(@D)
 	$(AS) $(AFLAGS_32) $< -o $@
 $(BUILDDIR)/%.o: $(SOURCEDIR)/%.c
+	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) -I $(SOURCEDIR) $< -o $@
 
 $(KERNEL): $(OBJECTS)
+	@echo $(OBJECTS)
 	$(LD) $(LDARGS) -o $(BUILDDIR)/kernel.elf $(OBJECTS)
 	objcopy -O binary $(BUILDDIR)/kernel.elf $@
 
