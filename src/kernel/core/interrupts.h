@@ -70,6 +70,9 @@ void isr_stub(interrupt_frame* frame, uint8_t code);
 void isr_err_stub(interrupt_frame_err* frame, uint8_t code);
 
 void general_protection_fault(interrupt_frame_err* frame);
+void double_fault(interrupt_frame_err* frame);
+void divide_by_zero(interrupt_frame* frame);
+
 void timer(interrupt_frame* frame);
 void keyboard_isr(interrupt_frame* frame);
 

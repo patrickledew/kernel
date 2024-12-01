@@ -3,8 +3,8 @@
 #include "types.h"
 #include "portio.h"
 
-short _row = 0;
-short _col = 0;
+uint16_t _row = 0;
+uint16_t _col = 0;
 
 uint8_t _current_color = 0x0F;
 
@@ -115,7 +115,12 @@ void set_vga_reg(uint16_t address_port, uint16_t data_port, uint8_t reg, uint8_t
        outb(address_port, reg);
        outb(data_port, byte);
 }
-
+uint8_t get_vga_reg(uint16_t address_port, uint16_t data_port, uint8_t reg) {
+       outb(address_port, reg);
+       uint8_t ret;
+       inb(data_port, ret);
+       return ret;
+}
 uint16_t get_cursor_row() {
     return _row;
 };
@@ -123,13 +128,17 @@ uint16_t get_cursor_col() {
     return _col;
 };
 
+#include "logging.h"
 
 void set_cursor_pos(uint16_t row, uint16_t col) {
     _row = row;
     _col = col;
-    uint16_t offset = OFFSET(row, col) / 2;
-    char send_byte = (char)offset;
-    set_vga_reg(0x03d4, 0x03d5, 0x0F, send_byte);
-    send_byte >>= 8;
-    set_vga_reg(0x03d4, 0x03d5, 0x0E, send_byte);
+}
+
+void update_cursor() {
+    uint16_t offset = _row * VIDEO_COLS + _col;
+    
+    set_vga_reg(0x03d4, 0x03d5, 0x0F, offset & 0xFF);
+    set_vga_reg(0x03d4, 0x03d5, 0x0E, (offset >> 8) & 0xFF);
+    
 }

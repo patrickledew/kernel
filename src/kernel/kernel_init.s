@@ -12,6 +12,8 @@ _start:
     mov ds, ax
     mov es, ax
     mov ss, ax
+    mov fs, ax
+    mov gs, ax
 
 setup_stack:
     ; Locate stack at 0x5000

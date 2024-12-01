@@ -56,7 +56,7 @@ set_protected_mode:
 ;; 2. there's something faulting in kernel_init.s, causing infinite restart
 
 jump_kernel:
-    jmp dword 08h:0x10000 ; Jump using first GDT segment (offset 0x08), which is the kernel
+    jmp dword 0x08:0x10000 ; Jump using first GDT segment (offset 0x08), which is the kernel
 
 ;; UTILITIES
 

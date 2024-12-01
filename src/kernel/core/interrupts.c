@@ -124,7 +124,9 @@ void init_idt() {
     ADD_ISR_STUB(0x2F);
 
     // Add custom ISRs
+    ADD_ISR(0x00, divide_by_zero);
     ADD_ISR(0x0D, general_protection_fault);
+    ADD_ISR(0x08, double_fault);
     ADD_ISR(0x20, timer);
     ADD_ISR(0x21, keyboard_isr);
   
@@ -219,19 +221,19 @@ void pic_eoi() {
 // This allows us to see exactly which code is displayed for each interrupt triggered.
 void isr_stub(interrupt_frame* frame, uint8_t code) {
     set_color(0x0D);
-    log_number("Unhandled interrupt", code, 16);
-    log_number("IP", frame->ip, 16);
-    log_number("CS", frame->cs, 16);
-    log_number("FLAGS", frame->flags, 16);
+    log_number_at("Unhandled interrupt", code, 16, 0, 60);
+    log_number_at("IP", frame->ip, 16, 2, 60);
+    log_number_at("CS", frame->cs, 16, 3, 60);
+    log_number_at("FLAGS", frame->flags, 16, 4, 60);
 }
 
 void isr_err_stub(interrupt_frame_err* frame, uint8_t code) {
     set_color(0x0D);
-    log_number("Unhandled interrupt", code, 16);
-    log_number("Error code", frame->error_code, 16);
-    log_number("IP", frame->ip, 16);
-    log_number("CS", frame->cs, 16);
-    log_number("FLAGS", frame->flags, 16);
+    log_number_at("Unhandled interrupt", code, 16, 0, 60);
+    log_number_at("Error code", frame->error_code, 16, 1, 60);
+    log_number_at("IP", frame->ip, 16, 2, 60);
+    log_number_at("CS", frame->cs, 16, 3, 60);
+    log_number_at("FLAGS", frame->flags, 16, 4, 60);
 }
 
 /* Handle #GP, usually caused by corrupt descriptor tables and some other critical errors */
@@ -241,9 +243,9 @@ void general_protection_fault(interrupt_frame_err* frame) {
     int_disable();
     set_color(0x4F);
     fill_screen(' ', 0x4F);
-    set_cursor_pos(1, 0);
+    set_cursor_pos(2, 0);
     print("#GP Occurred. Halting kernel.\n");
-    set_cursor_pos (2, 0);
+    set_cursor_pos (1, 0);
 
     log_number("Error Code", frame->error_code, 16);
     log_number("IP", frame->ip, 16);
@@ -271,11 +273,42 @@ void general_protection_fault(interrupt_frame_err* frame) {
     __asm__("hlt"); // Stop forever
 }
 
-volatile int tick = 0;
+/* Also handle double faults by freezing the system. */
 __attribute__((interrupt))
+void double_fault(interrupt_frame_err* frame) {
+    int_disable();
+    set_color(0x3F);
+    fill_screen(' ', 0x3F);
+    set_cursor_pos(0, 0);
+    log_error("#DF Occurred. Halting kernel.\n");
+    log_number("Error Code (Should be 0)", frame->error_code, 16);
+    log_number("IP", frame->ip, 16);
+    log_number("CS", frame->cs, 16);
+    log_number("FLAGS", frame->flags, 16);
+
+    __asm__("hlt"); // Stop forever
+}
+
+__attribute__((interrupt))
+void divide_by_zero(interrupt_frame* frame) {
+    int_disable();
+    set_color(0x0C);
+    fill_screen(' ', 0x0C);
+    set_cursor_pos(0, 0);
+    log_error("Divide by zero. Halting Kernel.\n");
+    log_number("IP", frame->ip, 16);
+    log_number("CS", frame->cs, 16);
+    log_number("FLAGS", frame->flags, 16);
+    __asm__("hlt");
+}
+
+
+volatile int tick = 0;
+__attribute__((interrupt))asdfh
 void timer(interrupt_frame* frame) {
     set_color(0x0F);
     log_number_at("Tick", tick++, 16, VIDEO_ROWS - 1, VIDEO_COLS - 20);
+    update_cursor();
     pic_eoi();
 }
 

@@ -2,14 +2,15 @@
 #include "util/logging.h"
 #include "core/interrupts.h"
 #include "util/keyboard.h"
+
 void kmain() {
-    fill_screen(' ', 0x00);
-    log_info("kmain: initializing IDT...");
+    fill_screen(' ', 0x0F);
+
+    log_info("kmain: initializing interrupts...");
     init_idt(); // Initialize interrupt descriptor table (IDT)
+    log_info("kmain: initializing keyboard...");
     keyboard_init(); // Initialize keyboard driver
 
-    char c = 'A';
     while(1) {
-        print_char_at(c++, 0x0D, VIDEO_ROWS-1, VIDEO_COLS-1);
     }
 }

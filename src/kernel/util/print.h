@@ -25,5 +25,5 @@ uint16_t get_cursor_col();
 void set_cursor_pos(uint16_t row, uint16_t col);
 void newline();
 void scroll_buffer();
-
+void update_cursor();
 #endif

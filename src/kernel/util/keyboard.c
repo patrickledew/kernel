@@ -7,7 +7,7 @@
 char* SC_TO_STR[256] = { 0 };
 
 void keyboard_init() {
-    SC_TO_STR[0x00] = "";
+    SC_TO_STR[0x00] = "ERR";
     SC_TO_STR[0x01] = "Esc";
     SC_TO_STR[0x02] = "1";
     SC_TO_STR[0x03] = "2";
@@ -73,15 +73,39 @@ void keyboard_init() {
 
 void keyboard_handler() {
     set_color(0x0C);
+    
+    // Wait until kb is ready to be read by checking status
     uint8_t kb_status;
-    // Wait until kb is ready to be read
     while (!(kb_status & 0x01)) {
         inb(KB_STATUS, kb_status);
     }
+
+    // Once kb ready, read in scancode
     uint8_t kb_output;
     inb(KB_OUTPUT, kb_output);
+
     // Scancode will be in kb_output
-    uint32_t idx = ((uint32_t)kb_output) & 0xFF;
-    char* text = SC_TO_STR[idx];
+    uint16_t sc = ((uint32_t)kb_output) & 0xFF;
+
+    uint16_t row = get_cursor_row();
+    uint16_t col = get_cursor_col();
+
+    switch (sc)
+    {
+    case 0x0E:
+        col--;
+        if (col < 0) {
+            row--;
+            col = VIDEO_COLS - 1;
+        }
+        set_cursor_pos(row, col);
+        print_char_at(' ', get_color(), row, col);
+        return;
+    
+    default:
+        break;
+    }
+    // Translate to readable string
+    char* text = SC_TO_STR[sc];
     print(text);
 }
