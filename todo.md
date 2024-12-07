@@ -1,3 +1,6 @@
 # To-do list
 
-- Link against the C library
+- Implement terminal scrolling
+- Build a memory manager
+- Build heap which can do malloc/free
+- mmap

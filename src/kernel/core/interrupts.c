@@ -304,7 +304,7 @@ void divide_by_zero(interrupt_frame* frame) {
 
 
 volatile int tick = 0;
-__attribute__((interrupt))asdfh
+__attribute__((interrupt))
 void timer(interrupt_frame* frame) {
     set_color(0x0F);
     log_number_at("Tick", tick++, 16, VIDEO_ROWS - 1, VIDEO_COLS - 20);

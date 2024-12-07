@@ -15,26 +15,44 @@ void print_char_at(char c, uint8_t color, short row, short col) {
     *(ptr) = color;
 }
 
-void print(char* str) {
-    while (*str != 0x00) { // check for null pointer
-        if (*str == '\n') {
-            newline();
-            str++;
-            continue;
-        }
-        // Print the next character
-        print_char_at(*(str++), _current_color, _row, _col);
+void print_char(char c) {
+    if (c == '\n') {
+        newline();
+        return;
+    }
 
-        _col++;
-        if (_col > VIDEO_COLS) {
-            _col = 0;
-            _row++;
-            if (_row > VIDEO_ROWS) {
-                scroll_buffer(); // not implemented yet
+    if (c == '\b') {
+        if (_col == 0) {
+            if (_row == 0) {
+                _row = VIDEO_ROWS - 1;
+            } else {
+                _row--;
             }
+            _col = VIDEO_COLS - 1;
+        } else {
+            _col--;
+        }
+        print_char_at(' ', _current_color, _row, _col);
+        return;
+    }
+    
+    print_char_at(c, _current_color, _row, _col);
+
+    _col++;
+    if (_col > VIDEO_COLS) {
+        _col = 0;
+        _row++;
+        if (_row > VIDEO_ROWS) {
+            scroll_buffer(); // not implemented yet
         }
     }
-    set_cursor_pos(_row, _col);
+}
+
+void print(char* str) {
+    while (*str != 0x00) { // check for null terminator
+        // Print the next character
+        print_char(*(str++));
+    }
 }
 
 void print_num(unsigned int number, unsigned int radix) {
@@ -43,11 +61,11 @@ void print_num(unsigned int number, unsigned int radix) {
 
 // eXtended print_num
 void print_num_x(unsigned int number, unsigned int radix, bool prefixed, unsigned int min_width) {
-    const char zero_ascii = '0';
+    unsigned char zero_ascii = '0';
     char digits_str[33] = {0}; // digits of number, listed backward. lowest radix will be 2, which is 32 digits for a 32 bit int.
-    int i = 31; // Second to last index of string, last is reserved for null terminator
+    unsigned int i = 31; // Second to last index of string, last is reserved for null terminator
     while (i >= 0 && number != 0) {
-        char digit = (number % radix) + zero_ascii;
+        unsigned char digit = (number % radix) + zero_ascii;
         if (digit > '9') digit += 'A' - '9' - 1; // alpha chars don't come immediately after numerals, add offset
         digits_str[i--] = digit; // populate digits string backward, based on modulo
         number = number / radix;
@@ -89,7 +107,18 @@ void set_color(uint8_t color) {
 
 
 void scroll_buffer() {
-    _row = 0;
+    // Need to clear out top row and shift other rows one by one
+    for (int r = 0; r < VIDEO_ROWS; r++) {
+        for (int c = 0; c < VIDEO_COLS; c++) {
+            uint32_t cur_row = OFFSET(r, c);
+            if (r == VIDEO_ROWS - 1) {
+                *(uint16_t*)(VIDEO_MEMORY + cur_row) = 0;
+            } else {
+                uint32_t next_row = OFFSET(r+1, c);
+                *(uint16_t*)(VIDEO_MEMORY + cur_row) = *(uint16_t*)(VIDEO_MEMORY + next_row);
+            }
+        }
+    }
 }
 
 void newline() {
@@ -140,5 +169,4 @@ void update_cursor() {
     
     set_vga_reg(0x03d4, 0x03d5, 0x0F, offset & 0xFF);
     set_vga_reg(0x03d4, 0x03d5, 0x0E, (offset >> 8) & 0xFF);
-    
 }

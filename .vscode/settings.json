@@ -1,6 +1,8 @@
 {
     "C_Cpp.errorSquiggles": "disabled",
     "files.associations": {
-        "logging.h": "c"
+        "logging.h": "c",
+        "keyboard.h": "c",
+        "memory.h": "c"
     }
 }
