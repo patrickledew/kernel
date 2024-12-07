@@ -139,6 +139,40 @@ string_setup_gdt:
 string_protected_mode:
     dw `Turning on protected mode and jumping to kernel...\n`, 0
 
-times (0x1FE - ($ - $$)) nop ;; pad for boot signature
+times (0x1B8 - ($ - $$)) nop
+    dd 0x42424242 ;; Disk signature
+    dw 0x0000
+times (0x1BE - ($ - $$)) nop
+partition_entry_1: ;; KERNEL IMAGE PARTITION
+    db 0x80 ; Primary disk
+    ;; Start of partition
+    db 0x00 ; Head 0
+    db 0b00000010 ; Sector 2 (1-indexed)
+    db 0x00 ; Cylinder 0
+    db 0x7F ; partition type (must be non-zero)
+    ;; End of partition    
+    ;; We copied 0x80 sectors
+    ;; 63 (0x3F) sectors per track
+    ;; 0x81 / 63 = 2 -> 2 full sectors filled, plus boot sector, end located in track 4
+    db 0x00 ; Head 0
+    db 0x02 ; Sector 2 (1-indexed)
+    db 0x04 ; Cylinder 4
+    dd 0x01  ; LBA of start of partition (Sector 1, zero indexed)
+    dd 0x80  ; Sectors in partition
+partition_entry_2: ;; RESERVED FOR FILESYSTEM EXPERIMENTATION
+    db 0x80 ; Primary disk
+    ;; Start of partition
+    db 0x00 ; Head 0
+    db 0b00000011 ; Sector 3 (1-indexed)
+    db 0x04 ; Cylinder 4
+    db 0x01 ; partition type (FAT12)
+    ;; End of partition    
+    db 0x00 ; Head 0
+    db 0xFF ; Sector 2 (1-indexed)
+    db 0xFF ; Cylinder 4
+    dd (0xFF - 1) * 0xFF * 16 * 63  ; LBA of start of partition (Sector 1, zero indexed)
+    dd 0xFF * 0xFF  ; Sectors in partition
+    
+times (0x1FE - ($ - $$)) db 0x00 ;; pad for boot signature
 bootsig:
     dw 0xAA55 ; Boot signature

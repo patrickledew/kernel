@@ -3,6 +3,7 @@
     "files.associations": {
         "logging.h": "c",
         "keyboard.h": "c",
-        "memory.h": "c"
+        "memory.h": "c",
+        "types.h": "c"
     }
 }
