@@ -4,6 +4,8 @@
         "logging.h": "c",
         "keyboard.h": "c",
         "memory.h": "c",
-        "types.h": "c"
+        "types.h": "c",
+        "interrupts.h": "c",
+        "print.h": "c"
     }
 }

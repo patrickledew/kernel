@@ -1,18 +1,41 @@
 // C Entry point for kernel. Invoked from kernel_init.s.
-#include "util/logging.h"
 #include "core/interrupts.h"
-#include "util/keyboard.h"
 #include "core/memory.h"
+#include "util/logging.h"
+#include "util/keyboard.h"
+#include "util/timer.h"
+
+void test_routine() {
+    log_info("This is a test interval");
+}
+
 void kmain() {
     fill_screen(' ', 0x0F);
     log_number("kmain: kernel begin", (uint32_t)kernel_begin, 16);
     log_number("kmain: kernel end", (uint32_t)kernel_end, 16);
+
     log_info("kmain: initializing physical memory manager...");
     mem_init(0x1000);
-    log_info("kmain: initializing interrupts...");
+
+    log_info("kmain: initializing interrupt descriptor table...");
     init_idt(); // Initialize interrupt descriptor table (IDT)
+
+    log_info("kmain: initializing hardware timer...");
+    init_pit(1000); // Initialize hardware timer at 1khz
+
     log_info("kmain: initializing keyboard...");
     keyboard_init(); // Initialize keyboard driver
+
+    // After all interrupts have been registered, load IDT and enable interrupts
+    log_info("kmain: enabling interrupts...");
+    int_start();
+
+    set_interval(500, test_routine);
+    set_interval(10, update_cursor);
+
+    set_color(0x0A);
+    log_info("Done!");
+    set_color(0x0F);
 
     uint8_t* allocated_A = alloc(256); // Should allocate to page 1
     log_number("Allocated A at", (uint32_t)allocated_A, 16);

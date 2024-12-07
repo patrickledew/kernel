@@ -62,7 +62,9 @@ uint8_t pic_get_mask(uint8_t pic);
 void pic_set_mask(uint8_t pic, uint8_t mask);
 
 void init_idt();
-void add_idt_desc();
+void int_start();
+
+void add_idt_desc(uint8_t index, uint32_t routine);
 
 /** Interrupt handlers */
 // These are invoked by 
@@ -74,7 +76,7 @@ void double_fault(interrupt_frame_err* frame);
 void divide_by_zero(interrupt_frame* frame);
 
 void timer(interrupt_frame* frame);
-void keyboard_isr(interrupt_frame* frame);
+void keyboard_irq(interrupt_frame* frame);
 
 // Macros for registering ISRs
 #define ADD_ISR(i, isr) add_idt_desc(i, (uint32_t)isr)

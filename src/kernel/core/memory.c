@@ -22,8 +22,8 @@ uint8_t* p_start; // start of allocatable region
 
 // mem_init
 // Initializes a bitmap to keep track of which pages are free or used.
-// This locates the bitmap at the end of the kernel address space, and returns a pointer to the bitmap.
-uint8_t* mem_init(int pages)
+// This locates the bitmap at the end of the kernel address space.
+void mem_init(int pages)
 {
     num_pages = pages;
     p_bitmap = kernel_end;
@@ -34,16 +34,14 @@ uint8_t* mem_init(int pages)
         ptr++;
     }
     p_start = ptr;
-    return p_bitmap;
 }
 // Allocates [size] bytes of physical memory and returns a pointer to the start of the reserved block.
 uint8_t* alloc(uint32_t size) {
-    // This will return the address of the first contiguous block of pages sufficient for [size] bytes
-
     uint32_t pages_required = size / PAGE_SIZE + (size % PAGE_SIZE == 0 ? 0 : 1);
     uint32_t start_page = 0;
     uint32_t pages_found = 0;
     bool success = FALSE;
+    // First, find a section of contiguous pages large enough to hold [size]
     for (uint32_t i = 0; i < num_pages; i++) {
         uint32_t byte_idx = (i * 2) / 8;
         uint32_t bit_idx = (i * 2) % 8;

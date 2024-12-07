@@ -123,23 +123,27 @@ void init_idt() {
     ADD_ISR_STUB(0x2E);
     ADD_ISR_STUB(0x2F);
 
-    // Add custom ISRs
+    // Add error ISRs
     ADD_ISR(0x00, divide_by_zero);
     ADD_ISR(0x0D, general_protection_fault);
     ADD_ISR(0x08, double_fault);
-    ADD_ISR(0x20, timer);
-    ADD_ISR(0x21, keyboard_isr);
-  
+
+    // Configure PIC
+    pic_init();
+
+    // Don't enable interrupts yet as this can be done after other files register their interrupts
+}
+
+void int_start() {
     // Load the IDT
     load_idt();
 
-    pic_init();
     // Finally, reenable interrupts
     int_enable();
 }
 
-void add_idt_desc(int index, uint32_t routine) {
-    _idt[index].offset_1 = (uint16_t)routine;
+void add_idt_desc(uint8_t index, uint32_t routine) {
+    _idt[index].offset_1 = (uint16_t)(routine & 0xFFFF);
     _idt[index].offset_2 = (uint16_t)(routine >> 16);
     _idt[index].selector = 0x08 // Segment selector 0x08
                          | 0b0 << 2 // TI = GDT (0)
@@ -213,7 +217,7 @@ void pic_eoi() {
     outb(PIC2_COMMAND, PIC_CMD_EOI); // Slave
 }
 
-/** The rest of this file contains interrupt handlers */
+/** The rest of this file contains exception interrupt handlers and stubs */
 
 // isr_stub and isr_err_stub are called by ISRs defined
 // with the DEF_ISR_STUB and DEF_ISR_ERR_STUB macros.
@@ -300,22 +304,4 @@ void divide_by_zero(interrupt_frame* frame) {
     log_number("CS", frame->cs, 16);
     log_number("FLAGS", frame->flags, 16);
     __asm__("hlt");
-}
-
-
-volatile int tick = 0;
-__attribute__((interrupt))
-void timer(interrupt_frame* frame) {
-    set_color(0x0F);
-    log_number_at("Tick", tick++, 16, VIDEO_ROWS - 1, VIDEO_COLS - 20);
-    update_cursor();
-    pic_eoi();
-}
-
-__attribute__((interrupt))
-void keyboard_isr(interrupt_frame* frame) {
-    // Go to dedicated keyboard handler function
-    keyboard_handler();
-
-    pic_eoi(); // required for IRQs
 }

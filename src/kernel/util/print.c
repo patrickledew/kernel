@@ -112,7 +112,8 @@ void scroll_buffer() {
         for (int c = 0; c < VIDEO_COLS; c++) {
             uint32_t cur_row = OFFSET(r, c);
             if (r == VIDEO_ROWS - 1) {
-                *(uint16_t*)(VIDEO_MEMORY + cur_row) = 0;
+                *(uint8_t*)(VIDEO_MEMORY + cur_row) = ' ';
+                *(uint8_t*)(VIDEO_MEMORY + cur_row + 1) = _current_color;
             } else {
                 uint32_t next_row = OFFSET(r+1, c);
                 *(uint16_t*)(VIDEO_MEMORY + cur_row) = *(uint16_t*)(VIDEO_MEMORY + next_row);
@@ -126,9 +127,9 @@ void newline() {
         print_char_at(' ', _current_color, _row, i); // print spaces till end of row
     }
     _col = 0;
-    _row++; // go to next row
-    if (_row > VIDEO_ROWS) {
-        scroll_buffer(); // not implemented yet
+    if (++_row >= VIDEO_ROWS) {
+        _row = VIDEO_ROWS - 1;
+        scroll_buffer();
     }
 }
 

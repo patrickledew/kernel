@@ -17,7 +17,7 @@ extern uint8_t __KERNEL_END;
 extern uint8_t* kernel_begin;
 extern uint8_t* kernel_end;
 
-uint8_t* mem_init(int pages);
+void mem_init(int pages);
 uint8_t* alloc(uint32_t size);
 uint32_t free(uint8_t* addr);
 

@@ -3,10 +3,18 @@
 #include "util/logging.h"
 #include "util/print.h"
 #include "util/portio.h"
-
+#include "core/interrupts.h"
 
 void keyboard_init() {
-   // nothing to do yet
+    ADD_ISR(0x21, keyboard_isr); // Initialize keyboard IRQ
+}
+
+__attribute__((interrupt))
+void keyboard_isr(interrupt_frame* frame) {
+    // Go to dedicated keyboard handler function
+    keyboard_handler();
+
+    pic_eoi(); // required for IRQs
 }
 
 bool lshift = FALSE;

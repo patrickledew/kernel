@@ -9,6 +9,7 @@
 #define KB_OUTPUT 0x60
 #define KB_STATUS 0x64
 
+void keyboard_isr();
 void keyboard_init();
 void keyboard_handler();
  
