@@ -142,7 +142,7 @@ void int_start() {
     int_enable();
 }
 
-void add_idt_desc(uint8_t index, uint32_t routine) {
+void register_interrupt(uint8_t index, uint32_t routine) {
     _idt[index].offset_1 = (uint16_t)(routine & 0xFFFF);
     _idt[index].offset_2 = (uint16_t)(routine >> 16);
     _idt[index].selector = 0x08 // Segment selector 0x08
@@ -224,20 +224,25 @@ void pic_eoi() {
 // 
 // This allows us to see exactly which code is displayed for each interrupt triggered.
 void isr_stub(interrupt_frame* frame, uint8_t code) {
+    uint8_t c = get_color();
     set_color(0x0D);
-    log_number_at("Unhandled interrupt", code, 16, 0, 60);
-    log_number_at("IP", frame->ip, 16, 2, 60);
-    log_number_at("CS", frame->cs, 16, 3, 60);
-    log_number_at("FLAGS", frame->flags, 16, 4, 60);
+    log_number("Unhandled interrupt", code, 16);
+    log_number("IP", frame->ip, 16);
+    log_number("CS", frame->cs, 16);
+    log_number("FLAGS", frame->flags, 16);
+    set_color(c);
+
 }
 
 void isr_err_stub(interrupt_frame_err* frame, uint8_t code) {
+    uint8_t c = get_color();
     set_color(0x0D);
-    log_number_at("Unhandled interrupt", code, 16, 0, 60);
-    log_number_at("Error code", frame->error_code, 16, 1, 60);
-    log_number_at("IP", frame->ip, 16, 2, 60);
-    log_number_at("CS", frame->cs, 16, 3, 60);
-    log_number_at("FLAGS", frame->flags, 16, 4, 60);
+    log_number("Unhandled interrupt", code, 16);
+    log_number("Error code", frame->error_code, 16);
+    log_number("IP", frame->ip, 16);
+    log_number("CS", frame->cs, 16);
+    log_number("FLAGS", frame->flags, 16);
+    set_color(c);
 }
 
 /* Handle #GP, usually caused by corrupt descriptor tables and some other critical errors */

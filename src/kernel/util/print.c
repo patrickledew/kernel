@@ -38,13 +38,8 @@ void print_char(char c) {
     
     print_char_at(c, _current_color, _row, _col);
 
-    _col++;
-    if (_col > VIDEO_COLS) {
-        _col = 0;
-        _row++;
-        if (_row > VIDEO_ROWS) {
-            scroll_buffer(); // not implemented yet
-        }
+    if (++_col >= VIDEO_COLS) {
+        newline();
     }
 }
 

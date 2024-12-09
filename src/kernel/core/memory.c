@@ -106,4 +106,12 @@ uint32_t free(uint8_t* addr) {
         if (end)
             return i - start_page * PAGE_SIZE;
     }
-}  
+}
+
+void memcpy(uint8_t * src, uint8_t * dest, uint32_t size)
+{
+    for (uint32_t i = 0; i < size; i++) {
+        *(dest + i) = *(src + i);
+    }
+}
+  

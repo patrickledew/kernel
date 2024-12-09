@@ -145,33 +145,36 @@ times (0x1B8 - ($ - $$)) nop
 times (0x1BE - ($ - $$)) nop
 partition_entry_1: ;; KERNEL IMAGE PARTITION
     db 0x80 ; Primary disk
+    
     ;; Start of partition
     db 0x00 ; Head 0
     db 0b00000010 ; Sector 2 (1-indexed)
     db 0x00 ; Cylinder 0
     db 0x7F ; partition type (must be non-zero)
+    
     ;; End of partition    
-    ;; We copied 0x80 sectors
-    ;; 63 (0x3F) sectors per track
-    ;; 0x81 / 63 = 2 -> 2 full sectors filled, plus boot sector, end located in track 4
-    db 0x00 ; Head 0
-    db 0x02 ; Sector 2 (1-indexed)
-    db 0x04 ; Cylinder 4
+    ;; We copied 0x80 sectors, so 0x81 is the last sector
+    db 0x02 ; Head 2
+    db 0x03 ; Sector 3 (1-indexed)
+    db 0x00 ; Cylinder 0
+
     dd 0x01  ; LBA of start of partition (Sector 1, zero indexed)
     dd 0x80  ; Sectors in partition
 partition_entry_2: ;; RESERVED FOR FILESYSTEM EXPERIMENTATION
     db 0x80 ; Primary disk
-    ;; Start of partition
-    db 0x00 ; Head 0
-    db 0b00000011 ; Sector 3 (1-indexed)
-    db 0x04 ; Cylinder 4
+
+    ;; Start of partition - LBA 0x81
+    db 0x02 ; Head 2
+    db 0x04 ; Sector 4 (1-indexed)
+    db 0x00 ; Cylinder 0
     db 0x01 ; partition type (FAT12)
-    ;; End of partition    
-    db 0x00 ; Head 0
-    db 0xFF ; Sector 2 (1-indexed)
-    db 0xFF ; Cylinder 4
-    dd (0xFF - 1) * 0xFF * 16 * 63  ; LBA of start of partition (Sector 1, zero indexed)
-    dd 0xFF * 0xFF  ; Sectors in partition
+    
+    ;; End of partition - LBA 0x882    
+    db 0x02 ; Head 2
+    db 0x25 ; Sector 37 (1-indexed)
+    db 0x02 ; Cylinder 2
+    dd 0x81  ; LBA of start of partition (Sector 1, zero indexed)
+    dd 0x800  ; Sectors in partition
     
 times (0x1FE - ($ - $$)) db 0x00 ;; pad for boot signature
 bootsig:

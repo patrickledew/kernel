@@ -1,3 +1,5 @@
+export SHELL := /bin/bash
+
 AS = nasm
 AFLAGS_16 = -f bin
 AFLAGS_32 = -f elf -g -F stabs
@@ -14,8 +16,13 @@ SOURCEDIR = src/kernel
 
 BUILDDIR = bin
 
+FSDIR = fs
+
 BOOTLOADER = $(BUILDDIR)/boot.bin
 KERNEL = $(BUILDDIR)/kernel.bin
+FILESYSTEM = $(FSDIR)/filesystem.img
+FSMOUNTDIR = $(FSDIR)/mountpoint
+FSINITDIR = $(FSDIR)/init
 
 TARGET = $(BUILDDIR)/main.img
 
@@ -29,10 +36,14 @@ HEADERS := $(wildcard $(SOURCEDIR)/*.h)
 OBJECTS := $(patsubst $(SOURCEDIR)/%.c, $(BUILDDIR)/%.o, $(CC_SOURCES))
 OBJECTS += $(patsubst $(SOURCEDIR)/%.s, $(BUILDDIR)/%.o, $(AS_SOURCES))
 
+.PHONY: copy-files
+
 all: $(TARGET)
 
-$(TARGET): $(KERNEL) $(BOOTLOADER)
+$(TARGET): $(KERNEL) $(BOOTLOADER) copy-files
 	cat $(BOOTLOADER) $(KERNEL) >> $@
+	truncate -s 66048 $@
+	cat $(FILESYSTEM) >> $@
 
 # Building bootloader sector
 $(BOOTLOADER): $(BOOTSOURCE)
@@ -51,5 +62,28 @@ $(KERNEL): $(OBJECTS)
 	objcopy -O binary $(BUILDDIR)/kernel.elf $@
 
 
-clean:
-	rm -r $(BUILDDIR)/*
+copy-files: $(FILESYSTEM)
+	@echo copying files...
+	cp -r $(FSINITDIR)/* $(FSMOUNTDIR)
+	sudo sync -f $(FSMOUNTDIR)/*
+	ls $(FSMOUNTDIR)
+
+.ONESHELL:
+$(FILESYSTEM):
+	sudo mkfs.fat -F 12 -C $@ 1024
+	sudo losetup /dev/loop0 $@
+	sudo mount -o uid=1000 -t msdos /dev/loop0 $(FSMOUNTDIR)
+
+	@echo Created filesystem image in $(FILESYSTEM)
+
+
+
+fs: fs-clean $(FILESYSTEM)
+
+fs-clean:
+	@-sudo umount fs/mountpoint
+	@-sudo losetup -d /dev/loop0
+	@-rm fs/filesystem.img
+
+clean: fs-clean
+	@-rm -r $(BUILDDIR)/*

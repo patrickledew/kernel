@@ -6,6 +6,7 @@
         "memory.h": "c",
         "types.h": "c",
         "interrupts.h": "c",
-        "print.h": "c"
+        "print.h": "c",
+        "portio.h": "c"
     }
 }

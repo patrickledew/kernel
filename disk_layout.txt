@@ -1,0 +1,38 @@
+Layout of the disk               Sector     LBA (0-indexed)         Address
++------------------------------+ 1          0                       0x0000
+| Boot sector (512 bytes)      |
++------------------------------+ 2          1
+| Kernel code image            |
+| (up to 0x10000 bytes)        |
+|                              |
+|                              |
+|                              |
+|                              |
+|                              |
+|                              |
+|                              |
+|                              |
+|                              | 0x81       0x80  <- last sector    0x10000
++------------------------------+ 0x82       0x81                    0x10200
+| FAT12 Filesystem             |
+| (1 MiB, 0x800 sectors)       |
+|                              |
+|                              |
+|                              |
+|                              |
+|                              |
+|                              |
+|                              |
+|                              |
+|                              |
+|                              |
+|                              |
+|                              | 0x881      0x882                   0x110400
++------------------------------+ 0x882      0x883                   0x110600
+| Unallocated space            |
+|                              |
+|                              |
+|                              |
+|                              |
+|                              |
++ -  -  -  -  -  -  -  -  -  - + End of disk

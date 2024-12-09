@@ -33,7 +33,6 @@ uint32_t tick = 0;
 void timer_tick() {
     tick++;
     handle_intervals();
-    log_number_at("Uptime (ms)", tick, 10, 0, 50);
 }
 
 interval_desc interval_table[INTERVAL_TABLE_ENTRIES] = { 0 };

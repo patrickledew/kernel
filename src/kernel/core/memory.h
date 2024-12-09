@@ -21,4 +21,6 @@ void mem_init(int pages);
 uint8_t* alloc(uint32_t size);
 uint32_t free(uint8_t* addr);
 
+void memcpy(uint8_t* src, uint8_t* dest, uint32_t size);
+
 #endif
