@@ -17,6 +17,7 @@ void print_char(char c);
 
 // Printing strings and data
 void print(char* str);
+void print_count(char* str, unsigned int count);
 void println(char* str);
 void print_num(unsigned int number, unsigned int radix);
 void print_num_x(unsigned int number, unsigned int radix, bool prefixed, unsigned int min_width);

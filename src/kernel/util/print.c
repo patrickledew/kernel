@@ -50,6 +50,13 @@ void print(char* str) {
     }
 }
 
+// Print a specified number of characters.
+void print_count(char* str, unsigned int count) {
+    for (int i = 0; i < count; i++) {
+        print_char(str[i]);
+    }
+}
+
 void print_num(unsigned int number, unsigned int radix) {
     print_num_x(number, radix, FALSE, 0);
 }

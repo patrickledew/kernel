@@ -35,6 +35,7 @@ void mem_init(int pages)
     }
     p_start = ptr;
 }
+// TODO refactor to use new macros
 // Allocates [size] bytes of physical memory and returns a pointer to the start of the reserved block.
 uint8_t* alloc(uint32_t size) {
     uint32_t pages_required = size / PAGE_SIZE + (size % PAGE_SIZE == 0 ? 0 : 1);
@@ -105,6 +106,35 @@ uint32_t free(uint8_t* addr) {
 
         if (end)
             return i - start_page * PAGE_SIZE;
+    }
+}
+
+// Should free excess unused pages after addr. If addr is in the middle of a page, should not free that page.
+uint32_t free_excess(uint8_t* addr) {
+    if (addr < p_start || addr >= p_start + (num_pages * PAGE_SIZE)) return 0;
+
+    // Get index of page which contains the address
+    int page_idx = (addr - p_start) / PAGE_SIZE;
+    int free_same = (addr - p_start) % PAGE_SIZE == 0; // If on page boundary, also free current page
+
+    // If current page unused, doesnt belong to allocated block
+    if (!PAGE_USED(page_idx)) return 0; 
+
+    if (free_same) {
+        // We need to mark the previous page as end (if used and not already end)
+        if (page_idx != 0 && PAGE_USED(page_idx - 1)){ // If prev page used, mark as end
+            SET_PAGE_END(page_idx - 1);
+        }
+        // then we need to free pages, starting with the one that includes the addr given
+        return free(addr);
+    } else {
+        // We need to mark the current page as end, then free pages starting from the next page
+        // Already know current page is used, so we can mark as end
+        
+        if (PAGE_END(page_idx)) return 0; // If current page already marked as end, next page is not part of current block
+
+        SET_PAGE_END(page_idx);
+        return free((page_idx + 1) * PAGE_SIZE + p_start); // Free remaining pages starting from next page
     }
 }
 

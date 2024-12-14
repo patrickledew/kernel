@@ -137,8 +137,6 @@ void disk_identify(uint8_t selector) {
 // which indicates that one sector needs to be read.
 void read_sector(uint16_t* buf) {
     state = READING_SECTOR;
-    
-    log_number("reading sector", current_sector, 10);
 
     for(int i = 0; i < 256; i++) {
         uint16_t data;
@@ -192,7 +190,6 @@ void read_sectors(uint32_t lba, uint8_t num_sectors, uint8_t* dest) {
     while(state != IDLE) {
         // Wait for disk operation to complete before returning
     }
-    log_info("Read complete.");
 }
 
 
@@ -202,7 +199,6 @@ void write_sector(uint16_t* buf) {
     for(int i = 0; i < 256; i++) {
         uint16_t data = buf[current_sector * 256 + i];
         outw(ATA_PRIMARY_DATA, data);
-        // todo may need delay here?
     }
 
     if (current_sector == sector_count - 1) {
@@ -253,14 +249,13 @@ void write_sectors(uint32_t lba, uint8_t num_sectors, uint8_t* src) {
     // For some reason the ATA controller doesn't send an IRQ immediately,
     // instead we need to give it the first sector first. After we do that
     // it starts sending IRQs.
-    write_sector(src);
+    write_sector((uint16_t*)src);
 
     while(state != IDLE) {
         // uint8_t status;
         // inb(ATA_PRIMARY_STATUS_CMD, status);
         // log_number("status", status, 2);
     }
-    log_info("Write complete.");
 }
 
 __attribute__((interrupt))

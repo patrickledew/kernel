@@ -8,5 +8,6 @@
         "interrupts.h": "c",
         "print.h": "c",
         "portio.h": "c"
-    }
+    },
+    "debug.onTaskErrors": "debugAnyway"
 }

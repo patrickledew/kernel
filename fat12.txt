@@ -1,0 +1,18 @@
+READING A FAT12 ENTRY
+
+On disk, pairs of FAT12 entries can be read as a single 24-bit number (3 bytes)
+If we refer to the first byte as byte A, second as byte B, and third as byte C:
+
+Low 8 bits of entry 1 = byte A
+High 4 bits of entry 1 = low nibble of byte B
+
+Low 4 bits of entry 2 = high nibble of byte B
+High 8 bits of entry 2 = byte C
+
+e.g. for block AA Bb CC, constructed value for 1 would be 0bAA, 2 would be 0CCB
+
+
+Questions
+
+1. What is the cluster size we are using?
+2. 

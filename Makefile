@@ -2,13 +2,13 @@ export SHELL := /bin/bash
 
 AS = nasm
 AFLAGS_16 = -f bin
-AFLAGS_32 = -f elf -g -F stabs
+AFLAGS_32 = -f elf -g
 
 CC = gcc
-CFLAGS = -m32 -c -ffreestanding -mgeneral-regs-only
+CFLAGS = -m32 -c -ffreestanding -mgeneral-regs-only -g -ggdb
 
 LD = ld
-LDARGS = -T link.ld -melf_i386
+LDARGS = -T link.ld -melf_i386 -g --whole-archive
 
 BOOTSOURCE = src/boot/boot.s # Only file needed for bootloader
 

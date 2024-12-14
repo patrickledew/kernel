@@ -7,11 +7,12 @@ SECTIONS {
     .kernel : AT(0x0) {
         __KERNEL_BEGIN = .;
         *(.kernel_init);
-        *(.text);
-        *(.data);
+        *(.text .text.*);
+        *(.data .data.*);
         *(.rodata);
         *(.bss);
-        *(*);
+        *(.eh_frame);
+        *(.got.plt);
          __KERNEL_END = .;
     } >KERNEL
 }
