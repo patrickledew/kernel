@@ -1,10 +1,11 @@
 #ifndef IO_H
 #define IO_H
 
-#define outb(port, byte) __asm__("out %%al, %%dx;" : : "a"(byte), "d"(port));
-#define outw(port, byte) __asm__("outw %%ax, %%dx;" : : "a"(byte), "d"(port));
+#include "types.h"
 
-#define inb(port, var) __asm__("in %%dx, %%al" : "=a"(var) :  "d"(port));
-#define inw(port, var) __asm__("inw %%dx, %%ax" : "=a"(var) :  "d"(port));
+void outb(uint16_t port, uint8_t data);
+void outw(uint16_t port, uint16_t data);
+uint8_t inb(uint16_t port);
+uint16_t inw(uint16_t port);
 
 #endif

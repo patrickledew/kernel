@@ -149,9 +149,7 @@ void set_vga_reg(uint16_t address_port, uint16_t data_port, uint8_t reg, uint8_t
 }
 uint8_t get_vga_reg(uint16_t address_port, uint16_t data_port, uint8_t reg) {
        outb(address_port, reg);
-       uint8_t ret;
-       inb(data_port, ret);
-       return ret;
+       return inb(data_port);
 }
 uint16_t get_cursor_row() {
     return _row;

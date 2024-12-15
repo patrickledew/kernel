@@ -13,14 +13,13 @@ void init_pit(uint16_t freq) {
                 | PIT_OCW_SELECT_COUNT0;
 
     outb(PIT_PORT_CONTROL, ocw); // Send control word
-    outb(PIT_PORT_COUNT0, (initial_count & 0xFF)) // Load LSB
-    outb(PIT_PORT_COUNT0, ((initial_count >> 8) & 0xFF)) // Load MSB
+    outb(PIT_PORT_COUNT0, (initial_count & 0xFF)); // Load LSB
+    outb(PIT_PORT_COUNT0, ((initial_count >> 8) & 0xFF)); // Load MSB
 
     // Now register the ISR for the timer IRQ
     ADD_ISR(0x20, timer_isr); // Initialize keyboard IRQ
 }
 
-// The number of ms the kernel has been running for.
 __attribute__((interrupt))
 void timer_isr(interrupt_frame* frame) {
     uint8_t c = get_color();

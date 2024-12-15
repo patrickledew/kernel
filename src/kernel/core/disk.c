@@ -25,8 +25,7 @@ bool has_secondary = FALSE;
 disk_state state = IDLE;
 
 bool disk_detect_floating() {
-    uint8_t in;
-    inb(ATA_PRIMARY_STATUS_CMD, in); // Read status byte
+    uint8_t in = inb(ATA_PRIMARY_STATUS_CMD); // Read status byte
     return in == 0xFF;
 }
 
@@ -83,16 +82,13 @@ void disk_identify(uint8_t selector) {
     // Finally send IDENTIFY command
     outb(selector ? ATA_SECONDARY_STATUS_CMD : ATA_PRIMARY_STATUS_CMD, ATA_CMD_IDENTIFY);
 
-    uint8_t status;
-    inb(selector ? ATA_SECONDARY_STATUS_CMD : ATA_PRIMARY_STATUS_CMD, status);
+    uint8_t status = inb(selector ? ATA_SECONDARY_STATUS_CMD : ATA_PRIMARY_STATUS_CMD);
     if (status != 0x00) {
         // Drive exists
         while (status & ATA_MASK_STATUS_BSY) { // Poll until BSY clears
-            uint8_t lbamid;
-            uint8_t lbahi;
-            inb(selector ? ATA_SECONDARY_STATUS_CMD : ATA_PRIMARY_STATUS_CMD, status);
-            inb(selector ? ATA_SECONDARY_LBAMID : ATA_PRIMARY_LBAMID, lbamid);
-            inb(selector ? ATA_SECONDARY_LBAHI : ATA_PRIMARY_LBAHI, lbahi);
+            status = inb(selector ? ATA_SECONDARY_STATUS_CMD : ATA_PRIMARY_STATUS_CMD);
+            uint8_t lbamid = inb(selector ? ATA_SECONDARY_LBAMID : ATA_PRIMARY_LBAMID);
+            uint8_t lbahi = inb(selector ? ATA_SECONDARY_LBAHI : ATA_PRIMARY_LBAHI);
             if (lbamid || lbahi) {
                 log_error("disk: err: LBAmid or LBAhi was set. primary drive not ATA.");
                 return;
@@ -100,15 +96,13 @@ void disk_identify(uint8_t selector) {
         }
 
         while (!(status & ATA_MASK_STATUS_DRQ || status & ATA_MASK_STATUS_ERR)) {
-            inb(selector ? ATA_SECONDARY_STATUS_CMD : ATA_PRIMARY_STATUS_CMD, status);
+            status = inb(selector ? ATA_SECONDARY_STATUS_CMD : ATA_PRIMARY_STATUS_CMD);
         }
 
         if (status & ATA_MASK_STATUS_DRQ) {
             // DRQ bit set, transfer 256 bytes
             for (int i = 0; i < 256; i++) {
-                uint16_t data;
-                inw(selector ? ATA_SECONDARY_DATA : ATA_PRIMARY_DATA, data);
-                identify_primary[i] = data;
+                identify_primary[i] = inw(selector ? ATA_SECONDARY_DATA : ATA_PRIMARY_DATA);
             }
             if (selector) {
                 has_secondary = TRUE;
@@ -139,17 +133,19 @@ void read_sector(uint16_t* buf) {
     state = READING_SECTOR;
 
     for(int i = 0; i < 256; i++) {
-        uint16_t data;
-        inw(ATA_PRIMARY_DATA, data);
-        buf[current_sector * 256 + i] = data;
+        // Read 256 16-bit values (one sector)
+        buf[current_sector * 256 + i] = inw(ATA_PRIMARY_DATA);
     }
 
+    // Check if we're done reading all sectors
     if (current_sector == sector_count - 1) {
+        // If done, reset
         target_buffer = 0;
         sector_count = 0;
         current_sector = 0;
         state = IDLE;
     } else {
+        // If not done, wait for next interrupt
         state = PENDING_READ;
     }
     current_sector++;
@@ -252,16 +248,12 @@ void write_sectors(uint32_t lba, uint8_t num_sectors, uint8_t* src) {
     write_sector((uint16_t*)src);
 
     while(state != IDLE) {
-        // uint8_t status;
-        // inb(ATA_PRIMARY_STATUS_CMD, status);
-        // log_number("status", status, 2);
     }
 }
 
 __attribute__((interrupt))
 void disk_primary_irq(interrupt_frame* frame) {
-    uint8_t status;
-    inb(ATA_PRIMARY_STATUS_CMD, status);
+    uint8_t status = inb(ATA_PRIMARY_STATUS_CMD);
    
     if (status & ATA_MASK_STATUS_ERR) {
         log_error("disk: err set.");

@@ -24,12 +24,11 @@ void keyboard_handler() {
     // Wait until kb is ready to be read by checking status
     uint8_t kb_status;
     while (!(kb_status & 0x01)) {
-        inb(KB_STATUS, kb_status);
+        kb_status = inb(KB_STATUS);
     }
 
     // Once kb ready, read in scancode
-    uint8_t sc;
-    inb(KB_OUTPUT, sc);
+    uint8_t sc = inb(KB_OUTPUT);
     // Check if 
     switch(sc) {
 

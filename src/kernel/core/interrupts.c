@@ -177,7 +177,7 @@ void pic_init() {
     // Since PIC1 has IRQs 0 - 7, and PIC2 has 8 - 15, map them separately
     // This is send to the PICs' data registers (ports 0x21 and 0xA1)
     outb(PIC1_DATA, PIC1_ICW_2);
-    outb(PIC2_DATA, PIC2_ICW_2)
+    outb(PIC2_DATA, PIC2_ICW_2);
     // ICW 3 - this sets up cascading for the two PICs.
     // It designates an IRQ to use for communication between the two PICs.
     // For master, a bit mask indicates which IRQs have a slave PIC connected.
@@ -195,12 +195,11 @@ void pic_init() {
 }
 
 uint8_t pic_get_mask(uint8_t pic) {
-    uint8_t ret;
     switch (pic) {
-        case 1: inb(PIC1_DATA, ret); break;
-        case 2: inb(PIC2_DATA, ret); break;
+        case 1: return inb(PIC1_DATA);
+        case 2: return inb(PIC2_DATA);
     }
-    return ret;
+    return 0xFF;
 }
 
 void pic_set_mask(uint8_t pic, uint8_t mask) {

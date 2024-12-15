@@ -9,6 +9,7 @@
 
 int uptime = 0;
 uint8_t* string = 0;
+
 void show_uptime() {
     log_number_at("Uptime", uptime++, 10, 0, 55);
 }
