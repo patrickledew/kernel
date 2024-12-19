@@ -9,11 +9,11 @@
 #define KB_OUTPUT 0x60
 #define KB_STATUS 0x64
 
-void keyboard_isr();
 void keyboard_init();
-void keyboard_handler();
+void keyboard_isr();
  
-char get_scancode_char(uint8_t scancode, bool shift);
+void keyboard_scancode_recieve();
+char keyboard_scancode_get_char(uint8_t scancode, bool shift);
 
 // Mappings for scancodes
 

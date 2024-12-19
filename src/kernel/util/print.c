@@ -1,7 +1,8 @@
 // Functionality for printing characters from the screen using VGA text mode.
 #include "print.h"
 #include "types.h"
-#include "portio.h"
+#include "core/portio/portio.h"
+#include "core/vga/vga.h"
 
 uint16_t _row = 0;
 uint16_t _col = 0;
@@ -9,37 +10,31 @@ uint16_t _col = 0;
 uint8_t _current_color = 0x0F;
 
 
-void print_char_at(char c, uint8_t color, short row, short col) {
-    char* ptr = VIDEO_MEMORY + OFFSET(row, col);
-    *(ptr++) = c;
-    *(ptr) = color;
-}
-
 void print_char(char c) {
     if (c == '\n') {
-        newline();
+        print_cursor_next_line();
         return;
     }
 
     if (c == '\b') {
         if (_col == 0) {
             if (_row == 0) {
-                _row = VIDEO_ROWS - 1;
+                _row = VGA_ROWS - 1;
             } else {
                 _row--;
             }
-            _col = VIDEO_COLS - 1;
+            _col = VGA_COLS - 1;
         } else {
             _col--;
         }
-        print_char_at(' ', _current_color, _row, _col);
+        vga_char_set(' ', _current_color, _row, _col);
         return;
     }
     
-    print_char_at(c, _current_color, _row, _col);
+    vga_char_set(c, _current_color, _row, _col);
 
-    if (++_col >= VIDEO_COLS) {
-        newline();
+    if (++_col >= VGA_COLS) {
+        print_cursor_next_line();
     }
 }
 
@@ -91,83 +86,62 @@ void println(char* str) {
     print("\n");
 }
 
-void fill_screen(char character, uint8_t color) {
-    for (int row = 0; row < VIDEO_ROWS; row++) {
-        for (int col = 0; col < VIDEO_COLS; col++) {
-            print_char_at(character, color, row, col);
+void print_screen_fill(char character, uint8_t color) {
+    for (int row = 0; row < VGA_ROWS; row++) {
+        for (int col = 0; col < VGA_COLS; col++) {
+            vga_char_set(character, color, row, col);
         }
     }
 }
 
-uint8_t get_color() {
+uint8_t print_color_get() {
     return _current_color;
 }
 
-void set_color(uint8_t color) {
+void print_color_set(uint8_t color) {
     _current_color = color;
 }
 
 
-void scroll_buffer() {
+void print_buffer_scroll() {
     // Need to clear out top row and shift other rows one by one
-    for (int r = 0; r < VIDEO_ROWS; r++) {
-        for (int c = 0; c < VIDEO_COLS; c++) {
+    for (int r = 0; r < VGA_ROWS; r++) {
+        for (int c = 0; c < VGA_COLS; c++) {
             uint32_t cur_row = OFFSET(r, c);
-            if (r == VIDEO_ROWS - 1) {
-                *(uint8_t*)(VIDEO_MEMORY + cur_row) = ' ';
-                *(uint8_t*)(VIDEO_MEMORY + cur_row + 1) = _current_color;
+            if (r == VGA_ROWS - 1) {
+                *(uint8_t*)(VGA_MEMORY + cur_row) = ' ';
+                *(uint8_t*)(VGA_MEMORY + cur_row + 1) = _current_color;
             } else {
                 uint32_t next_row = OFFSET(r+1, c);
-                *(uint16_t*)(VIDEO_MEMORY + cur_row) = *(uint16_t*)(VIDEO_MEMORY + next_row);
+                *(uint16_t*)(VGA_MEMORY + cur_row) = *(uint16_t*)(VGA_MEMORY + next_row);
             }
         }
     }
 }
 
-void newline() {
-    for (int i = _col; i < VIDEO_COLS; i++) {
-        print_char_at(' ', _current_color, _row, i); // print spaces till end of row
+void print_cursor_next_line() {
+    for (int i = _col; i < VGA_COLS; i++) {
+        vga_char_set(' ', _current_color, _row, i); // print spaces till end of row
     }
     _col = 0;
-    if (++_row >= VIDEO_ROWS) {
-        _row = VIDEO_ROWS - 1;
-        scroll_buffer();
+    if (++_row >= VGA_ROWS) {
+        _row = VGA_ROWS - 1;
+        print_buffer_scroll();
     }
 }
 
-/**
-    Manipulate data inside VGA registers.
-    address_port - VGA Address I/O port to use
-    data_port - VGA Data I/O port to use
-    reg - VGA register selector, e.g. 0x0F for cursor low, 0x0E for cursor high
-    byte - Byte to load into the register
- */
-
-void set_vga_reg(uint16_t address_port, uint16_t data_port, uint8_t reg, uint8_t byte) {
-       outb(address_port, reg);
-       outb(data_port, byte);
-}
-uint8_t get_vga_reg(uint16_t address_port, uint16_t data_port, uint8_t reg) {
-       outb(address_port, reg);
-       return inb(data_port);
-}
-uint16_t get_cursor_row() {
+uint16_t print_cursor_row_get() {
     return _row;
 };
-uint16_t get_cursor_col() {
+uint16_t print_cursor_col_get() {
     return _col;
 };
 
-#include "logging.h"
-
-void set_cursor_pos(uint16_t row, uint16_t col) {
+void print_cursor_set(uint16_t row, uint16_t col) {
     _row = row;
     _col = col;
 }
 
-void update_cursor() {
-    uint16_t offset = _row * VIDEO_COLS + _col;
-    
-    set_vga_reg(0x03d4, 0x03d5, 0x0F, offset & 0xFF);
-    set_vga_reg(0x03d4, 0x03d5, 0x0E, (offset >> 8) & 0xFF);
+void print_cursor_refresh() {
+    vga_cursor_update(_row, _col);
 }

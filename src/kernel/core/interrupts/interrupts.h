@@ -27,7 +27,7 @@
 typedef struct{
     uint16_t size;
     uint32_t offset;
-} __attribute__((__packed__)) idt_descriptor;
+} __attribute__((__packed__)) IDTDescriptor;
 
 typedef struct {
    uint16_t offset_1;        // offset bits 0..15
@@ -35,51 +35,53 @@ typedef struct {
    uint8_t  __reserved;            // unused, set to 0
    uint8_t  type_attributes; // gate type, dpl, and p fields
    uint16_t offset_2;        // offset bits 16..31
-} __attribute__((__packed__)) interrupt_descriptor;
+} __attribute__((__packed__)) InterruptDescriptor;
 
 typedef struct {
     uint32_t ip;
     uint32_t cs;
     uint32_t flags;
-} __attribute__((__packed__)) interrupt_frame;
+} __attribute__((__packed__)) InterruptFrame;
 
 typedef struct {
     uint32_t error_code;
     uint32_t ip;
     uint32_t cs;
     uint32_t flags;
-} __attribute__((__packed__)) interrupt_frame_err;
+} __attribute__((__packed__)) InterruptFrameWithError;
 
 
+// General interrupt-related functions
+void int_start();
 void int_disable();
 void int_enable();
-void load_idt();
+
+// Interrupt Descriptor Table (IDT) related functions
+void int_idt_setup();
+void int_idt_load();
 
 // PIC functions
-void pic_eoi();
-void pic_init();
-uint8_t pic_get_mask(uint8_t pic);
-void pic_set_mask(uint8_t pic, uint8_t mask);
+void    int_pic_send_eoi();
+void    int_pic_init();
+uint8_t int_pic_mask_get(uint8_t pic);
+void    int_pic_mask_set(uint8_t pic, uint8_t mask);
 
-void init_idt();
-void int_start();
+// Functions related to ISRs
 
-void register_interrupt(uint8_t index, uint32_t routine);
+// Register an ISR
+void int_isr_register(uint8_t index, uint32_t routine);
 
-/** Interrupt handlers */
-// These are invoked by 
-void isr_stub(interrupt_frame* frame, uint8_t code);
-void isr_err_stub(interrupt_frame_err* frame, uint8_t code);
+// Stub ISRs
+void int_isr_stub(InterruptFrame* frame, uint8_t code);
+void int_isr_err_stub(InterruptFrameWithError* frame, uint8_t code);
 
-void general_protection_fault(interrupt_frame_err* frame);
-void double_fault(interrupt_frame_err* frame);
-void divide_by_zero(interrupt_frame* frame);
-
-void timer(interrupt_frame* frame);
-void keyboard_irq(interrupt_frame* frame);
+// ISRs to freeze the system when a GP, DF, or DZ is encountered
+void int_isr_fault_gp(InterruptFrameWithError* frame); // General Protection Fault
+void int_isr_fault_df(InterruptFrameWithError* frame); // Double Fault
+void int_isr_fault_dbz(InterruptFrame* frame); // Divide by Zero
 
 // Macros for registering ISRs
-#define ADD_ISR(i, isr) register_interrupt(i, (uint32_t)isr)
+#define ADD_ISR(i, isr) int_isr_register(i, (uint32_t)isr)
 
 // Note: ADD_ISR_STUB and ADD_ISR_ERR_STUB require using a corresponding
 //       DEF_ISR_STUB or DEF_ISR_ERR_STUB.
@@ -92,26 +94,26 @@ void keyboard_irq(interrupt_frame* frame);
 
 // Macros for defining unique stub ISRs for each code.
 // e.g.
-//      isr_stub_0x10(interrupt_frame* frame)
-//      isr_err_stub_0x20(interrupt_frame_err* frame)
+//      isr_stub_0x10(InterruptFrame* frame)
+//      isr_err_stub_0x20(InterruptFrameWithError* frame)
 // These invoke isr_debug or isr_err_debug
 #define DEF_ISR_STUB(i) \
     __attribute__((interrupt))\
-    void isr_stub_##i(interrupt_frame* frame) {\
-        isr_stub(frame, i);\
+    void isr_stub_##i(InterruptFrame* frame) {\
+        int_isr_stub(frame, i);\
     }
 
 #define DEF_ISR_ERR_STUB(i) \
     __attribute__((interrupt))\
-    void isr_err_stub_##i(interrupt_frame_err* frame) {\
-        isr_err_stub(frame, i);\
+    void isr_err_stub_##i(InterruptFrameWithError* frame) {\
+        int_isr_err_stub(frame, i);\
     }
 
 #define DEF_ISR_STUB_IRQ(i) \
     __attribute__((interrupt))\
-    void isr_stub_##i(interrupt_frame* frame) {\
-        isr_stub(frame, i);\
-        pic_eoi();\
+    void isr_stub_##i(InterruptFrame* frame) {\
+        int_isr_stub(frame, i);\
+        int_pic_send_eoi();\
     }
 
 #endif

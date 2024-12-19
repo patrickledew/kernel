@@ -4,7 +4,7 @@ global print
 global print_asm
 
 dw "Signature of print.s"
-VIDEO_MEMORY equ 0xB8000
+VGA_MEMORY equ 0xB8000
 VIDEO_COLS equ 80
 VIDEO_ROWS equ 25
 
@@ -40,7 +40,7 @@ print_asm:
         mul dword [cursor_row]   ; EAX = index to start of current row
         add eax, [cursor_col]   ; EAX = index to cursor position
         shl eax, 1              ; EAX = offset in text buffer
-        add eax, VIDEO_MEMORY   ; EAX = address of character to modify
+        add eax, VGA_MEMORY   ; EAX = address of character to modify
         mov edi, eax
     _print_char:
         mov cl, [esi] ; read character
@@ -68,7 +68,7 @@ print_asm:
     _update_cursor:
         ; Calculate offset
         mov ebx, edi ; Take address we are using to set VGA data
-        sub ebx, VIDEO_MEMORY ; Subtract this from start of buffer
+        sub ebx, VGA_MEMORY ; Subtract this from start of buffer
         shr ebx, 1 ; Divide by two to get the offset
         mov al, 0x0F ; Register 0x0F (Cursor Low Register)
         call set_vga_crtc_reg

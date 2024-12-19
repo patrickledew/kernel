@@ -13,6 +13,6 @@ void log_number_at(char* label, unsigned int num, unsigned int radix, uint16_t r
 void log_error(char* str);
 
 // Prints a dump of a memory region starting at start_addr.
-void hex_dump(char* start_addr, uint32_t length);
+void log_memory(char* start_addr, uint32_t length);
 
 #endif

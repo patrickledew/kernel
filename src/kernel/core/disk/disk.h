@@ -1,7 +1,7 @@
 #ifndef DISK_H
 #define DISK_H
 #include "types.h"
-#include "interrupts.h"
+#include "core/interrupts/interrupts.h"
 // This file contains defines for interfacing with ATA hard drives directly, through port IO.
 // Note: this method is inherently slow and there exist other (much faster) solutions, namely DMA.
 
@@ -70,7 +70,7 @@
 
 typedef enum {
     IDLE, PENDING_READ, PENDING_WRITE, READING_SECTOR, WRITING_SECTOR
-} disk_state;
+} DiskState;
 // Detect floating bus if no drive is connected
 bool disk_detect_floating();
 
@@ -79,8 +79,8 @@ void disk_identify(uint8_t selector);
 
 void log_disk_info();
 
-void disk_primary_irq(interrupt_frame* frame);
-void disk_secondary_irq(interrupt_frame* frame);
+void disk_primary_irq(InterruptFrame* frame);
+void disk_secondary_irq(InterruptFrame* frame);
 
 void read_sector(uint16_t* buf);
 void read_sectors(uint32_t lba, uint8_t num_sectors, uint8_t* dest);

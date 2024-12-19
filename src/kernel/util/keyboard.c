@@ -2,25 +2,25 @@
 #include "types.h"
 #include "util/logging.h"
 #include "util/print.h"
-#include "util/portio.h"
-#include "core/interrupts.h"
+#include "core/portio/portio.h"
+#include "core/interrupts/interrupts.h"
 
 void keyboard_init() {
     ADD_ISR(0x21, keyboard_isr); // Initialize keyboard IRQ
 }
 
 __attribute__((interrupt))
-void keyboard_isr(interrupt_frame* frame) {
+void keyboard_isr(InterruptFrame* frame) {
     // Go to dedicated keyboard handler function
-    keyboard_handler();
+    keyboard_scancode_recieve();
 
-    pic_eoi(); // required for IRQs
+    int_pic_send_eoi(); // required for IRQs
 }
 
 bool lshift = FALSE;
 bool rshift = FALSE;
 
-void keyboard_handler() {
+void keyboard_scancode_recieve() {
     // Wait until kb is ready to be read by checking status
     uint8_t kb_status;
     while (!(kb_status & 0x01)) {
@@ -48,12 +48,12 @@ void keyboard_handler() {
 
     log_number_at("Scancode", sc, 16, 10, 30);
 
-    char ch = get_scancode_char(sc, lshift || rshift);
+    char ch = keyboard_scancode_get_char(sc, lshift || rshift);
 
-    if (ch) print_char(ch);
+    if (ch) print_char(ch); 
 }
 
-char get_scancode_char(uint8_t scancode, bool shift) {
+char keyboard_scancode_get_char(uint8_t scancode, bool shift) {
     char scancode_without_release = scancode & 0x7F; // ignore 8th bit (release bit)
     return shift ? sc2ch_shift[scancode_without_release] : sc2ch[scancode_without_release];
 }

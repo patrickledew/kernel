@@ -1,16 +1,16 @@
 #include "interrupts.h"
 #include "util/print.h"
-#include "util/portio.h"
+#include "core/portio/portio.h"
 #include "util/logging.h"
 #include "util/keyboard.h"
 #define NUM_IDT_DESCRIPTORS 1
 
 // The IDT Descriptor (IDTR) tells the LIDT instruction where the IDT is located and how big it is.
-idt_descriptor _idtr = {0};
+IDTDescriptor _idtr = {0};
 
 // The Interrupt Descriptor Table (IDT).
 // Holds 256 entries that correspond to different interrupt codes.
-interrupt_descriptor _idt[256] = {0};
+InterruptDescriptor _idt[256] = {0};
 
 DEF_ISR_STUB(0x00);         // #DE Divide by 0
 DEF_ISR_STUB(0x01);         // #DB Debug
@@ -64,7 +64,7 @@ DEF_ISR_STUB_IRQ(0x2E);
 DEF_ISR_STUB_IRQ(0x2F);
 
 // Sets up the Interrupt Descriptor Table (IDT)
-void init_idt() {
+void int_idt_setup() {
     // Populate IDT descriptor
     _idtr.offset = (uint32_t)&_idt;
     _idtr.size = 0xFF * 0x08; // 256 entries
@@ -124,25 +124,25 @@ void init_idt() {
     ADD_ISR_STUB(0x2F);
 
     // Add error ISRs
-    ADD_ISR(0x00, divide_by_zero);
-    ADD_ISR(0x0D, general_protection_fault);
-    ADD_ISR(0x08, double_fault);
+    ADD_ISR(0x00, int_isr_fault_dbz);
+    ADD_ISR(0x0D, int_isr_fault_gp);
+    ADD_ISR(0x08, int_isr_fault_df);
 
     // Configure PIC
-    pic_init();
+    int_pic_init();
 
     // Don't enable interrupts yet as this can be done after other files register their interrupts
 }
 
 void int_start() {
     // Load the IDT
-    load_idt();
+    int_idt_load();
 
     // Finally, reenable interrupts
     int_enable();
 }
 
-void register_interrupt(uint8_t index, uint32_t routine) {
+void int_isr_register(uint8_t index, uint32_t routine) {
     _idt[index].offset_1 = (uint16_t)(routine & 0xFFFF);
     _idt[index].offset_2 = (uint16_t)(routine >> 16);
     _idt[index].selector = 0x08 // Segment selector 0x08
@@ -153,7 +153,7 @@ void register_interrupt(uint8_t index, uint32_t routine) {
                                 | 0b1 << 7; // Present bit (always 1)
 }
 
-void load_idt() {
+void int_idt_load() {
     __asm__("lidt %0" : : "m"(_idtr));
 }
 
@@ -167,7 +167,7 @@ void int_enable() {
 
 // Initializes the PICs and remaps their interrupts to not conflict with
 // x86 exception interrupts at 0x0-0x1F.
-void pic_init() {
+void int_pic_init() {
     // PIC initialization is done through a series of command words, ICW_1 through ICW_4.
     // ICW 1 - same for both
     // Bit 5 in this word is the initialization bit, which kicks off the init sequence
@@ -190,11 +190,11 @@ void pic_init() {
     outb(PIC2_DATA, PIC_ICW_4);
 
     // Now enable all IRQs (0 is active, 1 inactive)
-    pic_set_mask(1, 0x00);
-    pic_set_mask(2, 0x00);
+    int_pic_mask_set(1, 0x00);
+    int_pic_mask_set(2, 0x00);
 }
 
-uint8_t pic_get_mask(uint8_t pic) {
+uint8_t int_pic_mask_get(uint8_t pic) {
     switch (pic) {
         case 1: return inb(PIC1_DATA);
         case 2: return inb(PIC2_DATA);
@@ -202,7 +202,7 @@ uint8_t pic_get_mask(uint8_t pic) {
     return 0xFF;
 }
 
-void pic_set_mask(uint8_t pic, uint8_t mask) {
+void int_pic_mask_set(uint8_t pic, uint8_t mask) {
     switch (pic) {
         case 1: outb(PIC1_DATA, mask); break;
         case 2: outb(PIC2_DATA, mask); break;
@@ -211,49 +211,50 @@ void pic_set_mask(uint8_t pic, uint8_t mask) {
 
 // Sends an "End of interrupt" (EOI) command to the master and slave PICs (Programmable Interrupt Controllers)
 // For IRQs, this will indicate to the PIC that the interrupt has been handled.
-void pic_eoi() {
+void int_pic_send_eoi() {
     outb(PIC1_COMMAND, PIC_CMD_EOI); // Master
     outb(PIC2_COMMAND, PIC_CMD_EOI); // Slave
 }
 
 /** The rest of this file contains exception interrupt handlers and stubs */
 
-// isr_stub and isr_err_stub are called by ISRs defined
+// int_isr_stub and int_isr_err_stub are called by ISRs defined
 // with the DEF_ISR_STUB and DEF_ISR_ERR_STUB macros.
 // 
-// This allows us to see exactly which code is displayed for each interrupt triggered.
-void isr_stub(interrupt_frame* frame, uint8_t code) {
-    uint8_t c = get_color();
-    set_color(0x0D);
+// This allows us to see exactly what the interrupt code is for each unhandled interrupt.
+void int_isr_stub(InterruptFrame* frame, uint8_t code) {
+    uint8_t c = print_color_get();
+    print_color_set(0x0D);
     log_number("Unhandled interrupt", code, 16);
     log_number("IP", frame->ip, 16);
     log_number("CS", frame->cs, 16);
     log_number("FLAGS", frame->flags, 16);
-    set_color(c);
+    print_color_set(c);
 
 }
 
-void isr_err_stub(interrupt_frame_err* frame, uint8_t code) {
-    uint8_t c = get_color();
-    set_color(0x0D);
+void int_isr_err_stub(InterruptFrameWithError* frame, uint8_t code) {
+    uint8_t c = print_color_get();
+    print_color_set(0x0D);
     log_number("Unhandled interrupt", code, 16);
     log_number("Error code", frame->error_code, 16);
     log_number("IP", frame->ip, 16);
     log_number("CS", frame->cs, 16);
     log_number("FLAGS", frame->flags, 16);
-    set_color(c);
+    print_color_set(c);
 }
 
-/* Handle #GP, usually caused by corrupt descriptor tables and some other critical errors */
-// This halts the system and displays debug info.
+/* Handle #GP, usually caused by corrupt descriptor tables and some other critical errors
+ * Halts the system and displays debug info.
+ */
 __attribute__((interrupt))
-void general_protection_fault(interrupt_frame_err* frame) {
+void int_isr_fault_gp(InterruptFrameWithError* frame) {
     int_disable();
-    set_color(0x4F);
-    fill_screen(' ', 0x4F);
-    set_cursor_pos(2, 0);
+    print_color_set(0x4F);
+    print_screen_fill(' ', 0x4F);
+    print_cursor_set(2, 0);
     print("#GP Occurred. Halting kernel.\n");
-    set_cursor_pos (1, 0);
+    print_cursor_set (1, 0);
 
     log_number("Error Code", frame->error_code, 16);
     log_number("IP", frame->ip, 16);
@@ -283,11 +284,11 @@ void general_protection_fault(interrupt_frame_err* frame) {
 
 /* Also handle double faults by freezing the system. */
 __attribute__((interrupt))
-void double_fault(interrupt_frame_err* frame) {
+void int_isr_fault_df(InterruptFrameWithError* frame) {
     int_disable();
-    set_color(0x3F);
-    fill_screen(' ', 0x3F);
-    set_cursor_pos(0, 0);
+    print_color_set(0x3F);
+    print_screen_fill(' ', 0x3F);
+    print_cursor_set(0, 0);
     log_error("#DF Occurred. Halting kernel.\n");
     log_number("Error Code (Should be 0)", frame->error_code, 16);
     log_number("IP", frame->ip, 16);
@@ -297,12 +298,13 @@ void double_fault(interrupt_frame_err* frame) {
     __asm__("hlt"); // Stop forever
 }
 
+/* Same for dividing by zero. */
 __attribute__((interrupt))
-void divide_by_zero(interrupt_frame* frame) {
+void int_isr_fault_dbz(InterruptFrame* frame) {
     int_disable();
-    set_color(0x0C);
-    fill_screen(' ', 0x0C);
-    set_cursor_pos(0, 0);
+    print_color_set(0x0C);
+    print_screen_fill(' ', 0x0C);
+    print_cursor_set(0, 0);
     log_error("Divide by zero. Halting Kernel.\n");
     log_number("IP", frame->ip, 16);
     log_number("CS", frame->cs, 16);

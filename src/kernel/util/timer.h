@@ -1,7 +1,7 @@
 #ifndef TIMER_H
 #define TIMER_H
 #include "types.h"
-#include "core/interrupts.h"
+#include "core/interrupts/interrupts.h"
 // This contains defines for programming the Programmable Interval Timer (PIT).
 // This allows for accurate timekeeping and running tasks at different intervals.
 /** Ports for interacting with PIT */
@@ -48,11 +48,11 @@ typedef struct {
     void (*routine)(); // The routine to run.
 } interval_desc;
 
-void init_pit(uint16_t freq);
-void timer_isr(interrupt_frame* frame);
+void timer_pit_init(uint16_t freq);
+void timer_isr(InterruptFrame* frame);
 void timer_tick();
-void handle_intervals();
-int set_interval(uint32_t ms, void (*routine)());
-int clear_interval(int index);
+void timer_interval_run();
+int timer_interval_set(uint32_t ms, void (*routine)());
+int timer_interval_clear(int index);
 
 #endif

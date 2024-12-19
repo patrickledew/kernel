@@ -5,8 +5,8 @@
 - Build a memory manager DONE
 - Implement disk driver (basically done)
 - Implement filesystem
-    - Try implementing FAT8? FAT16?
-    - For example/testing, build tool to convert existing windows folder structure into on-disk image of FS?
+    - Implement FAT12 driver
+    - Make read file function
 - Implement terminal scrolling (kinda done, would like scrollable both ways)
 
 ## distant future

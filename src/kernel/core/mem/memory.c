@@ -6,9 +6,6 @@
 * This will allow allocating blocks of memory starting from the end of the loaded kernel image, plus what we allocate for the bitmap.
 */
 
-uint8_t* kernel_begin = &__KERNEL_BEGIN;
-uint8_t* kernel_end = &__KERNEL_END;
-
 uint32_t num_pages; // number of pages available to be allocated
 
 // bitmap used to allocate pages.
@@ -26,10 +23,10 @@ uint8_t* p_start; // start of allocatable region
 void mem_init(int pages)
 {
     num_pages = pages;
-    p_bitmap = kernel_end;
-    uint8_t* ptr = (uint8_t*)kernel_end;
+    p_bitmap = __KERNEL_END;
+    uint8_t* ptr = (uint8_t*)__KERNEL_END;
     p_bitmap = ptr;
-    while (ptr < kernel_end + pages / 8 + (pages % 8 == 0 ? 0 : 1)) {
+    while (ptr < __KERNEL_END + pages / 8 + (pages % 8 == 0 ? 0 : 1)) {
         *ptr = 0x00;
         ptr++;
     }

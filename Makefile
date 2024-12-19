@@ -27,11 +27,8 @@ FSINITDIR = $(FSDIR)/init
 TARGET = $(BUILDDIR)/main.img
 
 
-CC_SOURCES := $(wildcard $(SOURCEDIR)/*.c) $(wildcard $(SOURCEDIR)/*/*.c)
-AS_SOURCES := $(wildcard $(SOURCEDIR)/*.s) $(wildcard $(SOURCEDIR)/*/*.s)
-
-HEADERS := $(wildcard $(SOURCEDIR)/*.h)
-
+CC_SOURCES := $(shell find $(SOURCEDIR) -name '*.c')
+AS_SOURCES := $(shell find $(SOURCEDIR) -name '*.s')
 
 OBJECTS := $(patsubst $(SOURCEDIR)/%.c, $(BUILDDIR)/%.o, $(CC_SOURCES))
 OBJECTS += $(patsubst $(SOURCEDIR)/%.s, $(BUILDDIR)/%.o, $(AS_SOURCES))
@@ -57,6 +54,7 @@ $(BUILDDIR)/%.o: $(SOURCEDIR)/%.c
 	$(CC) $(CFLAGS) -I $(SOURCEDIR) $< -o $@
 
 $(KERNEL): $(OBJECTS)
+	@echo $(CC_SOURCES)
 	@echo $(OBJECTS)
 	$(LD) $(LDARGS) -o $(BUILDDIR)/kernel.elf $(OBJECTS)
 	objcopy -O binary $(BUILDDIR)/kernel.elf $@

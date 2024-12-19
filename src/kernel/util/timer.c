@@ -1,11 +1,11 @@
 #include "timer.h"
-#include "portio.h"
+#include "core/portio/portio.h"
 #include "logging.h"
-#include "core/interrupts.h"
+#include "core/interrupts/interrupts.h"
 
 // Minimum frequency is ~18.2 hz, since the max value for count registers is 65535.
 // PIT_FREQ_HZ / 65535 = 18.2
-void init_pit(uint16_t freq) {
+void timer_pit_init(uint16_t freq) {
     uint16_t initial_count = PIT_FREQ_HZ / freq; // Run PIT at [freq]hz
     uint8_t ocw = PIT_OCW_BINCOUNT_BIN
                 | PIT_OCW_MODE_RATE
@@ -21,22 +21,22 @@ void init_pit(uint16_t freq) {
 }
 
 __attribute__((interrupt))
-void timer_isr(interrupt_frame* frame) {
-    uint8_t c = get_color();
+void timer_isr(InterruptFrame* frame) {
+    uint8_t c = print_color_get();
     timer_tick();
-    pic_eoi();
+    int_pic_send_eoi();
 }
 
 
 uint32_t tick = 0;
 void timer_tick() {
     tick++;
-    handle_intervals();
+    timer_interval_run();
 }
 
 interval_desc interval_table[INTERVAL_TABLE_ENTRIES] = { 0 };
 
-void handle_intervals() {
+void timer_interval_run() {
     for (int i = 0; i < INTERVAL_TABLE_ENTRIES; i++) {
         interval_desc interval = interval_table[i];
         if (interval.interval == 0) continue;
@@ -49,7 +49,7 @@ void handle_intervals() {
 }
 
 // Returns an index to the created entry in the interval table, or -1 if the interval table is full.
-int set_interval(uint32_t ms, void (*routine)()) {
+int timer_interval_set(uint32_t ms, void (*routine)()) {
     for (int i = 0; i < INTERVAL_TABLE_ENTRIES; i++) {
         if (interval_table[i].interval == 0) { // If interval empty, create one
             interval_table[i].interval = ms;
@@ -64,7 +64,7 @@ int set_interval(uint32_t ms, void (*routine)()) {
 }
 
 // Returns 1 if interval successfully cleared, 0 if the interval does not exist.
-int clear_interval(int index) {
+int timer_interval_clear(int index) {
     if (index < 0 || index >= INTERVAL_TABLE_ENTRIES) {
         return 0;
     }

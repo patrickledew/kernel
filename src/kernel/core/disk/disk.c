@@ -1,7 +1,7 @@
 #include "disk.h"
-#include "util/portio.h"
+#include "core/portio/portio.h"
 #include "util/logging.h"
-#include "memory.h"
+#include "core/mem/memory.h"
 // This file contains an implementation for interfacing with ATA hard drives directly, through port IO.
 // Note: this method is inherently slow and there exist other (much faster) solutions, namely DMA.
 
@@ -22,7 +22,7 @@ uint8_t current_sector = 0; // Current sector we are reading/writing.
 bool has_primary = FALSE;
 bool has_secondary = FALSE;
 
-disk_state state = IDLE;
+DiskState state = IDLE;
 
 bool disk_detect_floating() {
     uint8_t in = inb(ATA_PRIMARY_STATUS_CMD); // Read status byte
@@ -30,8 +30,8 @@ bool disk_detect_floating() {
 }
 
 void disk_init() {
-    register_interrupt(ATA_PRIMARY_IRQ, (uint32_t)disk_primary_irq);
-    register_interrupt(ATA_SECONDARY_IRQ, (uint32_t)disk_secondary_irq);
+    int_isr_register(ATA_PRIMARY_IRQ, (uint32_t)disk_primary_irq);
+    int_isr_register(ATA_SECONDARY_IRQ, (uint32_t)disk_secondary_irq);
 
     if (disk_detect_floating()) {
         log_error("disk_init: err: no drives connected.");
@@ -252,7 +252,7 @@ void write_sectors(uint32_t lba, uint8_t num_sectors, uint8_t* src) {
 }
 
 __attribute__((interrupt))
-void disk_primary_irq(interrupt_frame* frame) {
+void disk_primary_irq(InterruptFrame* frame) {
     uint8_t status = inb(ATA_PRIMARY_STATUS_CMD);
    
     if (status & ATA_MASK_STATUS_ERR) {
@@ -284,11 +284,11 @@ void disk_primary_irq(interrupt_frame* frame) {
                 break;
         }
     }
-    pic_eoi();
+    int_pic_send_eoi();
 }
 
 __attribute__((interrupt))
-void disk_secondary_irq(interrupt_frame* frame) {
+void disk_secondary_irq(InterruptFrame* frame) {
    log_info("Secondary disk IRQ: not implemented yet");
-   pic_eoi();
+   int_pic_send_eoi();
 }

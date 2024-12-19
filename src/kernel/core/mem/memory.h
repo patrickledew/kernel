@@ -21,11 +21,8 @@
 // Need to know the address where kernel is loaded, and how big it is
 
 // These are symbols introduced by the linker. They are located at the beginning and end of the kernel image.
-extern uint8_t __KERNEL_BEGIN;
-extern uint8_t __KERNEL_END;
-
-extern uint8_t* kernel_begin;
-extern uint8_t* kernel_end;
+extern uint8_t* __KERNEL_BEGIN;
+extern uint8_t* __KERNEL_END;
 
 void mem_init(int pages);
 uint8_t* alloc(uint32_t size);

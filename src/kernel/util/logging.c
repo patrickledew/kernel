@@ -12,23 +12,23 @@ void log_number(char* str, unsigned int num, unsigned int radix) {
 }
 
 void log_number_at(char* label, unsigned int num, unsigned int radix, uint16_t row, uint16_t col) {
-    uint16_t prev_row = get_cursor_row();
-    uint16_t prev_col = get_cursor_col();
-    set_cursor_pos(row, col);
+    uint16_t prev_row = print_cursor_row_get();
+    uint16_t prev_col = print_cursor_col_get();
+    print_cursor_set(row, col);
     print(label);
     print(": ");
     print_num_x(num, radix, TRUE, 4);
-    set_cursor_pos(prev_row, prev_col);
+    print_cursor_set(prev_row, prev_col);
 }
 
 void log_error(char* str) {
-    uint8_t prev_color = get_color();
-    set_color(0x0C);
+    uint8_t prev_color = print_color_get();
+    print_color_set(0x0C);
     println(str);
-    set_color(prev_color);
+    print_color_set(prev_color);
 }
 
-void hex_dump(char* start_addr, uint32_t length) {
+void log_memory(char* start_addr, uint32_t length) {
     const int word_size = 2; // in bytes
     const int words_per_row = 8;
     uint32_t mask = 0xFFFFFFFF >> (word_size * 8); // will right shift mask based on units displayed
