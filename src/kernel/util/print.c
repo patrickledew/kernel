@@ -52,12 +52,33 @@ void print_count(char* str, unsigned int count) {
     }
 }
 
-void print_num(unsigned int number, unsigned int radix) {
-    print_num_x(number, radix, FALSE, 0);
+void print_num(int number, unsigned int radix) {
+    print_num_x(number, radix, FALSE, 0, TRUE);
 }
 
+void print_num_u(unsigned int number, unsigned int radix) {
+    print_num_x(number, radix, FALSE, 0, FALSE);
+}
 // eXtended print_num
-void print_num_x(unsigned int number, unsigned int radix, bool prefixed, unsigned int min_width) {
+void print_num_x(int number, unsigned int radix, bool prefixed, int min_width, bool is_signed) {
+
+    if (is_signed && number < 0) {
+        number = -number;
+        print_char('-');
+    }
+
+    if (prefixed) {
+        if (radix == 16) {
+            print("0x");
+        } else if (radix == 2) {
+            print("0b");
+        }
+    }
+    
+    if (number == 0 && !min_width) {
+        print_char('0');
+    }
+
     unsigned char zero_ascii = '0';
     char digits_str[33] = {0}; // digits of number, listed backward. lowest radix will be 2, which is 32 digits for a 32 bit int.
     unsigned int i = 31; // Second to last index of string, last is reserved for null terminator
@@ -70,13 +91,6 @@ void print_num_x(unsigned int number, unsigned int radix, bool prefixed, unsigne
    
     while (i > 31 - min_width) {
         digits_str[i--] = zero_ascii;
-    }
-    if (prefixed) {
-        if (radix == 16) {
-            print("0x");
-        } else if (radix == 2) {
-            print("0b");
-        }
     }
     print(digits_str + i + 1);
 }

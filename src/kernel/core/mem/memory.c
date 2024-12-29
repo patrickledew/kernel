@@ -1,5 +1,6 @@
 #include "memory.h"
-
+#include "util/logging.h"
+#include "core/vga/vga.h"
 /*
 * Physical Memory Manager
 *
@@ -7,7 +8,7 @@
 */
 
 uint32_t num_pages; // number of pages available to be allocated
-
+uint32_t pages_free;
 // bitmap used to allocate pages.
 // format: this bitmap contains a two-bit pair for each page.
 // the first (least significant) bit is the used(1)/free(0) bit, and the second is the end marker bit.
@@ -23,15 +24,21 @@ uint8_t* p_start; // start of allocatable region
 void mem_init(int pages)
 {
     num_pages = pages;
-    p_bitmap = __KERNEL_END;
-    uint8_t* ptr = (uint8_t*)__KERNEL_END;
+    pages_free = pages;
+    uint8_t* ptr = (uint8_t*)KERNEL_END;
     p_bitmap = ptr;
-    while (ptr < __KERNEL_END + pages / 8 + (pages % 8 == 0 ? 0 : 1)) {
+    while (ptr < KERNEL_END + pages / 8 + (pages % 8 == 0 ? 0 : 1)) {
         *ptr = 0x00;
         ptr++;
     }
-    p_start = ptr;
+    p_start = ALLOC_REGION_START;
+
 }
+
+uint32_t mem_report() {
+    return pages_free;
+}
+
 // TODO refactor to use new macros
 // Allocates [size] bytes of physical memory and returns a pointer to the start of the reserved block.
 uint8_t* alloc(uint32_t size) {
@@ -73,6 +80,8 @@ uint8_t* alloc(uint32_t size) {
         } else {
             p_bitmap[byte_idx] |= (0b01 << bit_idx); // Set used bit for page i
         }
+
+        pages_free -= 1;
     }
 
     return p_start + start_page * PAGE_SIZE;   
@@ -100,6 +109,8 @@ uint32_t free(uint8_t* addr) {
             return 0;
 
         p_bitmap[byte_idx] &= ~(0b11 << bit_idx); // Clear bits for page i
+        
+        pages_free += 1;
 
         if (end)
             return i - start_page * PAGE_SIZE;
@@ -135,10 +146,15 @@ uint32_t free_excess(uint8_t* addr) {
     }
 }
 
-void memcpy(uint8_t * src, uint8_t * dest, uint32_t size)
+void memcpy(uint8_t* src, uint8_t* dest, uint32_t size)
 {
     for (uint32_t i = 0; i < size; i++) {
         *(dest + i) = *(src + i);
     }
 }
-  
+
+void memfill(uint8_t* buf, uint32_t size, uint8_t byte) {
+    for (uint32_t i = 0; i < size; i++) {
+        buf[i] = byte;
+    }
+}

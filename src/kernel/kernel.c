@@ -7,11 +7,15 @@
 #include "core/vga/vga.h"
 #include "core/disk/disk.h"
 #include "core/fs/fat/fat12.h"
+#include "core/fs/fs.h"
+#include "util/strutil.h"
+#include "util/assert.h"
+#include "test/fs.test.h"
 
 int uptime = 0;
 
 void show_uptime() {
-    log_number_at("Uptime", uptime++, 10, 0, 55);
+    log_number_at_u("Uptime", uptime++, 10, 0, 55);
 }
 
 void trap() {
@@ -20,8 +24,8 @@ void trap() {
 
 void kmain() {
     print_screen_fill(' ', 0x0F);
-    log_number("kmain: kernel begin", (uint32_t)__KERNEL_BEGIN, 16);
-    log_number("kmain: kernel end", (uint32_t)__KERNEL_END, 16);
+    log_number_u("kmain: kernel begin", (uint32_t)KERNEL_BEGIN, 16);
+    log_number_u("kmain: kernel end", (uint32_t)KERNEL_END, 16);
 
     log_info("kmain: initializing physical memory manager...");
     mem_init(0x1000);
@@ -48,14 +52,8 @@ void kmain() {
     log_info("kmain: Initializing FAT12 filesystem driver...");
     fat_init();
 
-    print_color_set(0x0A);
-    log_info("Done!");
-    print_color_set(0x0F);
+    // Todo: load an executable (shell) into memory and jump to it
 
-    // uint8_t* buf1 = alloc(PAGE_SIZE * 8);
-    // uint8_t* buf2 = alloc(PAGE_SIZE * 8);
-
-    // free_excess(buf1 + PAGE_SIZE * 8 - 100);
 
     trap();
 }

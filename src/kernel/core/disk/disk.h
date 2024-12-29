@@ -5,8 +5,10 @@
 // This file contains defines for interfacing with ATA hard drives directly, through port IO.
 // Note: this method is inherently slow and there exist other (much faster) solutions, namely DMA.
 
+// Additional note: ATA supports at least 2 disks, so this could be improved by allowing reading
+// from the secondary disk as well.
+
 #define ATA_PRIMARY_IRQ   0x2E
-#define ATA_SECONDARY_IRQ   0x2F
 
 #define ATA_PRIMARY_DATA            0x1F0 // Data Register (R/W)
 #define ATA_PRIMARY_ERROR_FEATURES  0x1F1 // Error Register (R) and Features Register (W)
@@ -19,18 +21,6 @@
 
 #define ATA_PRIMARY_ALTSTATUS_CONTROL   0x3F6 // Alternate Status (R) or Device Control Register (W)
 #define ATA_PRIMARY_DRIVE_ADDR          0x3F7 // Drive Address Register (R)
-
-#define ATA_SECONDARY_DATA            0x170 // Data Register (R/W)
-#define ATA_SECONDARY_ERROR_FEATURES  0x171 // Error Register (R) and Features Register (W)
-#define ATA_SECONDARY_SEC_COUNT       0x172 // Sector Count Register (R/W)
-#define ATA_SECONDARY_LBALO           0x173 // Sector Number / LBALo Register (R/W)r Register (R/W)
-#define ATA_SECONDARY_LBAMID          0x174 // Cylinder Low / LBAMid Register (R/W)
-#define ATA_SECONDARY_LBAHI           0x175 // Cylinder High / LBAHi Register (R/W)
-#define ATA_SECONDARY_DRIVE_HEAD      0x176 // Drive Select / Head Register (R/W)
-#define ATA_SECONDARY_STATUS_CMD      0x177 // Status Register (R) or Command Register (W)
-
-#define ATA_SECONDARY_ALTSTATUS_CONTROL   0x376 // Alternate Status (R) or Device Control Register (W)
-#define ATA_SECONDARY_DRIVE_ADDR          0x377 // Drive Address Register (R)
 
 #define ATA_MASK_ERR_AMNF   0b1         // Address mark not found
 #define ATA_MASK_ERR_TKZNF  0b10        // Track zero not found
@@ -69,23 +59,23 @@
 
 
 typedef enum {
-    IDLE, PENDING_READ, PENDING_WRITE, READING_SECTOR, WRITING_SECTOR
+    IDLE, PENDING_READ, PENDING_WRITE, READING_SECTOR, WRITING_SECTOR, FINISHING_WRITE
 } DiskState;
 // Detect floating bus if no drive is connected
 bool disk_detect_floating();
 
 void disk_init();
-void disk_identify(uint8_t selector);
+void disk_identify();
 
-void log_disk_info();
+void disk_log_info();
 
-void disk_primary_irq(InterruptFrame* frame);
+void disk_irq(InterruptFrame* frame);
 void disk_secondary_irq(InterruptFrame* frame);
 
-void read_sector(uint16_t* buf);
-void read_sectors(uint32_t lba, uint8_t num_sectors, uint8_t* dest);
+void disk_sector_read(uint16_t* buf);
+void disk_read(uint32_t lba, uint8_t num_sectors, uint8_t* dest);
 
-void write_sector(uint16_t* buf);
-void write_sectors(uint32_t lba, uint8_t num_sectors, uint8_t* src);
+void disk_sector_write(uint16_t* buf);
+void disk_write(uint32_t lba, uint8_t num_sectors, uint8_t* src);
 
 #endif

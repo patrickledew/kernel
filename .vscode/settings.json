@@ -8,7 +8,8 @@
         "interrupts.h": "c",
         "print.h": "c",
         "portio.h": "c",
-        "timer.h": "c"
+        "timer.h": "c",
+        "strutil.h": "c"
     },
     "debug.onTaskErrors": "debugAnyway"
 }

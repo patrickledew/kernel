@@ -12,8 +12,9 @@ void print_char(char c);
 void print(char* str); // Printing null terminated string
 void print_count(char* str, unsigned int count); // Printing a fixed-length string
 void println(char* str);
-void print_num(unsigned int number, unsigned int radix);
-void print_num_x(unsigned int number, unsigned int radix, bool prefixed, unsigned int min_width);
+void print_num(int number, unsigned int radix);
+void print_num_u(unsigned int number, unsigned int radix);
+void print_num_x(int number, unsigned int radix, bool prefixed, int min_width, bool is_signed);
 
 uint8_t print_color_get();
 void print_color_set(uint8_t color);

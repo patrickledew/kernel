@@ -2,6 +2,7 @@
 #include "core/portio/portio.h"
 #include "util/logging.h"
 #include "core/mem/memory.h"
+#include "util/assert.h"
 // This file contains an implementation for interfacing with ATA hard drives directly, through port IO.
 // Note: this method is inherently slow and there exist other (much faster) solutions, namely DMA.
 
@@ -12,17 +13,20 @@
 // Really, we should be using some sort of queue, and performing other tasks while we wait
 // instead of simply blocking.
 
-uint16_t identify_primary[256] = {0};
-uint16_t identify_secondary[256] = {0};
+uint16_t disk_info[256] = {0};
 
 uint8_t* target_buffer = 0x0000; // The buffer we're writing disk data to (when reading from disk) or reading from (when writing to disk)
 uint8_t sector_count = 0; // Number of sectors we are currently reading/writing.
 uint8_t current_sector = 0; // Current sector we are reading/writing.
 
-bool has_primary = FALSE;
-bool has_secondary = FALSE;
-
+uint32_t last_lba = 0;
 DiskState state = IDLE;
+
+void _assert_valid_sector(uint32_t lba, int line, char* file) {
+    uint32_t total_lba28_sectors = disk_info[60] | (disk_info[61] << 16);
+    _assert_lt_u32(total_lba28_sectors, lba, line, file);
+}
+#define assert_valid_sector(lba) _assert_valid_sector(lba, __LINE__, __FILE__);
 
 bool disk_detect_floating() {
     uint8_t in = inb(ATA_PRIMARY_STATUS_CMD); // Read status byte
@@ -30,65 +34,48 @@ bool disk_detect_floating() {
 }
 
 void disk_init() {
-    int_isr_register(ATA_PRIMARY_IRQ, (uint32_t)disk_primary_irq);
-    int_isr_register(ATA_SECONDARY_IRQ, (uint32_t)disk_secondary_irq);
+    int_isr_register(ATA_PRIMARY_IRQ, (uint32_t)disk_irq);
 
     if (disk_detect_floating()) {
         log_error("disk_init: err: no drives connected.");
         return;
     }
 
-    disk_identify(0);
-    disk_identify(1);
+    disk_identify();
 
-    log_disk_info();
+    disk_log_info();
 }
 
-void log_disk_info() {
-    if (has_primary) {
-        log_info("Primary disk:");
-        bool supports_lba48 = (bool)((identify_primary[83] >> 10) & 1);
-        log_info(supports_lba48 ? "   Supports LBA48? Yes" : "   Supports LBA48? No");
-        log_number("   UDMA Modes", identify_primary[88], 2);
-        uint32_t total_lba28_sectors = identify_primary[60] | (identify_primary[61] << 16);
+void disk_log_info() {
+    log_info("Disk Info:");
+    bool supports_lba48 = (bool)((disk_info[83] >> 10) & 1);
+    log_info(supports_lba48 ? "   Supports LBA48? Yes" : "   Supports LBA48? No");
+    log_number_u("   UDMA Modes", disk_info[88], 2);
+    uint32_t total_lba28_sectors = disk_info[60] | (disk_info[61] << 16);
 
-        log_number("   Addressable Sectors", total_lba28_sectors, 10);
-        log_number("   Total Bytes", total_lba28_sectors * 512, 10);
-    } else {
-        log_info("Secondary disk:");
-        bool supports_lba48 = (bool)((identify_secondary[83] >> 10) & 1);
-        log_info(supports_lba48 ? "   Supports LBA48? Yes" : "   Supports LBA48? No");
-        log_number("   UDMA Modes", identify_secondary[88], 2);
-        uint32_t total_lba28_sectors = identify_secondary[60] | (identify_secondary[61] << 16);
-
-        log_number("   Addressable Sectors", total_lba28_sectors, 10);
-        log_number("   Total Bytes", total_lba28_sectors * 512, 10);
-    }
+    log_number_u("   Addressable Sectors", total_lba28_sectors, 10);
+    log_number_u("   Total Bytes", total_lba28_sectors * 512, 10);
 }
 
 // Identify either primary (selector = 0) or secondary (selector = 1) ATA drive
-void disk_identify(uint8_t selector) {
-    if (selector > 1) return;
+void disk_identify() {
     // First we need to select the drive
-    uint8_t out = ATA_MASK_DRIVE_HEAD_ALWAYSSET
-                | (selector ? ATA_MASK_DRIVE_HEAD_DRV : 0); // Select drive
-
-    outb(selector ? ATA_SECONDARY_DRIVE_HEAD : ATA_PRIMARY_DRIVE_HEAD, out);
+    outb(ATA_PRIMARY_DRIVE_HEAD, ATA_MASK_DRIVE_HEAD_ALWAYSSET);
     // Then set sector count and LBA addr regs to 0
-    outb(selector ? ATA_SECONDARY_SEC_COUNT : ATA_PRIMARY_SEC_COUNT, 0x00);
-    outb(selector ? ATA_SECONDARY_LBALO : ATA_PRIMARY_LBALO, 0x00);
-    outb(selector ? ATA_SECONDARY_LBAMID : ATA_PRIMARY_LBAMID, 0x00);
-    outb(selector ? ATA_SECONDARY_LBAHI : ATA_PRIMARY_LBAHI, 0x00);
+    outb(ATA_PRIMARY_SEC_COUNT, 0x00);
+    outb(ATA_PRIMARY_LBALO, 0x00);
+    outb(ATA_PRIMARY_LBAMID, 0x00);
+    outb(ATA_PRIMARY_LBAHI, 0x00);
     // Finally send IDENTIFY command
-    outb(selector ? ATA_SECONDARY_STATUS_CMD : ATA_PRIMARY_STATUS_CMD, ATA_CMD_IDENTIFY);
+    outb(ATA_PRIMARY_STATUS_CMD, ATA_CMD_IDENTIFY);
 
-    uint8_t status = inb(selector ? ATA_SECONDARY_STATUS_CMD : ATA_PRIMARY_STATUS_CMD);
+    uint8_t status = inb(ATA_PRIMARY_ALTSTATUS_CONTROL);
     if (status != 0x00) {
         // Drive exists
         while (status & ATA_MASK_STATUS_BSY) { // Poll until BSY clears
-            status = inb(selector ? ATA_SECONDARY_STATUS_CMD : ATA_PRIMARY_STATUS_CMD);
-            uint8_t lbamid = inb(selector ? ATA_SECONDARY_LBAMID : ATA_PRIMARY_LBAMID);
-            uint8_t lbahi = inb(selector ? ATA_SECONDARY_LBAHI : ATA_PRIMARY_LBAHI);
+            status = inb(ATA_PRIMARY_ALTSTATUS_CONTROL);
+            uint8_t lbamid = inb(ATA_PRIMARY_LBAMID);
+            uint8_t lbahi = inb(ATA_PRIMARY_LBAHI);
             if (lbamid || lbahi) {
                 log_error("disk: err: LBAmid or LBAhi was set. primary drive not ATA.");
                 return;
@@ -96,18 +83,13 @@ void disk_identify(uint8_t selector) {
         }
 
         while (!(status & ATA_MASK_STATUS_DRQ || status & ATA_MASK_STATUS_ERR)) {
-            status = inb(selector ? ATA_SECONDARY_STATUS_CMD : ATA_PRIMARY_STATUS_CMD);
+            status = inb(ATA_PRIMARY_ALTSTATUS_CONTROL);
         }
 
         if (status & ATA_MASK_STATUS_DRQ) {
             // DRQ bit set, transfer 256 bytes
             for (int i = 0; i < 256; i++) {
-                identify_primary[i] = inw(selector ? ATA_SECONDARY_DATA : ATA_PRIMARY_DATA);
-            }
-            if (selector) {
-                has_secondary = TRUE;
-            } else {
-                has_primary = TRUE;
+                disk_info[i] = inw(ATA_PRIMARY_DATA);
             }
             return;
         } else {
@@ -117,11 +99,7 @@ void disk_identify(uint8_t selector) {
         }
     } else {
         // Drive does not exist
-        if (selector) {
-            log_info("disk: secondary drive not present.");
-        } else {
-            log_error("disk: err: primary drive not present.");
-        }
+        log_error("disk: err: drive not present.");
     }
 
 }
@@ -129,9 +107,8 @@ void disk_identify(uint8_t selector) {
 
 // Called every time an IRQ is triggered for a read operation,
 // which indicates that one sector needs to be read.
-void read_sector(uint16_t* buf) {
+void disk_sector_read(uint16_t* buf) {
     state = READING_SECTOR;
-
     for(int i = 0; i < 256; i++) {
         // Read 256 16-bit values (one sector)
         buf[current_sector * 256 + i] = inw(ATA_PRIMARY_DATA);
@@ -146,12 +123,14 @@ void read_sector(uint16_t* buf) {
         state = IDLE;
     } else {
         // If not done, wait for next interrupt
+        current_sector++;
         state = PENDING_READ;
     }
-    current_sector++;
 }
 
-void read_sectors(uint32_t lba, uint8_t num_sectors, uint8_t* dest) {
+void disk_read(uint32_t lba, uint8_t num_sectors, uint8_t* dest) {
+    assert_valid_sector(lba);
+    last_lba = lba;
     uint8_t lba_lo = lba & 0xFF;
     uint8_t lba_mid = (lba >> 8) & 0xFF;
     uint8_t lba_hi = (lba >> 16) & 0xFF;
@@ -183,35 +162,35 @@ void read_sectors(uint32_t lba, uint8_t num_sectors, uint8_t* dest) {
 
     outb(ATA_PRIMARY_STATUS_CMD, ATA_CMD_READSECTORS);
 
+
     while(state != IDLE) {
         // Wait for disk operation to complete before returning
     }
 }
 
-
-void write_sector(uint16_t* buf) {
+void disk_sector_write(uint16_t* buf) {
     state = WRITING_SECTOR;
-    log_number("writing sector", current_sector, 10);
     for(int i = 0; i < 256; i++) {
         uint16_t data = buf[current_sector * 256 + i];
         outw(ATA_PRIMARY_DATA, data);
     }
 
-    if (current_sector == sector_count - 1) {
+    if (current_sector >= sector_count - 1) {
         target_buffer = 0;
         sector_count = 0;
         current_sector = 0;
-        state = IDLE;
+        state = FINISHING_WRITE;
     } else {
+        current_sector++;
         state = PENDING_WRITE;
     }
-
-    current_sector++;
-
 }
 
 
-void write_sectors(uint32_t lba, uint8_t num_sectors, uint8_t* src) {
+void disk_write(uint32_t lba, uint8_t num_sectors, uint8_t* src) {
+    assert_valid_sector(lba);
+    last_lba = lba;
+
     uint8_t lba_lo = lba & 0xFF;
     uint8_t lba_mid = (lba >> 8) & 0xFF;
     uint8_t lba_hi = (lba >> 16) & 0xFF;
@@ -219,7 +198,7 @@ void write_sectors(uint32_t lba, uint8_t num_sectors, uint8_t* src) {
 
     // If another read or write is in progress, block until that is completed.
     while (state != IDLE) {}
-    log_info("begin write");
+
     // Initialize state
     state = PENDING_WRITE;
     target_buffer = src;
@@ -245,21 +224,34 @@ void write_sectors(uint32_t lba, uint8_t num_sectors, uint8_t* src) {
     // For some reason the ATA controller doesn't send an IRQ immediately,
     // instead we need to give it the first sector first. After we do that
     // it starts sending IRQs.
-    write_sector((uint16_t*)src);
+    disk_sector_write((uint16_t*)src);
 
     while(state != IDLE) {
     }
 }
 
 __attribute__((interrupt))
-void disk_primary_irq(InterruptFrame* frame) {
+void disk_irq(InterruptFrame* frame) {
     uint8_t status = inb(ATA_PRIMARY_STATUS_CMD);
    
     if (status & ATA_MASK_STATUS_ERR) {
         log_error("disk: err set.");
-
-        // TODO read in error register
+        uint8_t error = inb(ATA_PRIMARY_ERROR_FEATURES);
+        if (error & ATA_MASK_ERR_AMNF) log_error("disk: err: Address mark not found.");
+        if (error & ATA_MASK_ERR_TKZNF) log_error("disk: err: Track zero not found. ");
+        if (error & ATA_MASK_ERR_ABRT) log_error("disk: err: Aborted command. ");
+        if (error & ATA_MASK_ERR_MCR) log_error("disk: err: Media change request. ");
+        if (error & ATA_MASK_ERR_IDNF) log_error("disk: err: ID not found. ");
+        if (error & ATA_MASK_ERR_MC) log_error("disk: err: Media changed. ");
+        if (error & ATA_MASK_ERR_UNC) log_error("disk: err: Uncorrectable data error. ");
+        if (error & ATA_MASK_ERR_BBK) log_error("disk: err: Bad Block detected.");
+        log_number_u("  Starting Sector", last_lba, 16);
+        log_number_u("  Sector Offset", current_sector, 16);
+        log_number_u("  # Sectors", sector_count, 16);
+        uint32_t total_lba28_sectors = disk_info[60] | (disk_info[61] << 16);
+        log_number_u("  Total Addressable Sectors", total_lba28_sectors, 16);
     }
+
 
     // Check if DRQ (data request) bit is set.
     // If set, we are in the middle of a read/write operation and should
@@ -268,27 +260,28 @@ void disk_primary_irq(InterruptFrame* frame) {
         switch (state) {
             case IDLE:
                 log_error("disk IRQ recieved unexpectedly, DRQ set");
-                log_number("status reg", status, 2);
                 break;
             case PENDING_READ:
-                read_sector((uint16_t*)target_buffer);
+                disk_sector_read((uint16_t*)target_buffer);
                 break;
             case PENDING_WRITE:
-                write_sector((uint16_t*)target_buffer);
+                disk_sector_write((uint16_t*)target_buffer);
                 break;
             case READING_SECTOR:
-                log_error("disk IRQ recieved while read in progress.");
+                log_info("READING_SECTOR");
+                log_error("disk: IRQ with DRQ set while already reading data.");
                 break;
             case WRITING_SECTOR:
-                log_error("disk IRQ recieved while write in progress.");
+                log_info("WRITING_SECTOR");
+                log_error("disk: IRQ with DRQ set while already writing data.");
                 break;
+            case FINISHING_WRITE:
+                log_error("disk: IRQ with DRQ set after write complete.");
+        }
+    } else {
+        if (state == FINISHING_WRITE) {
+            state = IDLE; // For whatever reason, write operations issue an additional interrupt that must be consumed before allowing another write.
         }
     }
     int_pic_send_eoi();
-}
-
-__attribute__((interrupt))
-void disk_secondary_irq(InterruptFrame* frame) {
-   log_info("Secondary disk IRQ: not implemented yet");
-   int_pic_send_eoi();
 }

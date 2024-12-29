@@ -7,6 +7,16 @@
 // For now i'm going to be attempting to use a FAT12 filesystem,
 // the partion for which is located immediately after the kernel image.
 
+/**
+ * TODOS for FAT12 driver
+ * - Clean up a lot of the writing code, it ugly
+ * - Make use of attributes
+ * - Support renaming files
+ * - Support deleting files
+ * - Support moving files (without deleting/recreating)
+ * - Organize this into separate interface and implementation files
+ */
+
 #define FS_START 0x10200 // Filesystem starts in next sector after kernel image
 #define FS_END 0x110600
 #define FS_START_SECTOR (FS_START / 512)
@@ -86,15 +96,31 @@ typedef struct {
 } __attribute__((__packed__)) FATFile;
 
 typedef struct {
-    FATFile* entries;
+    FATFile* entries; // Points to a list with count + 1 entries, the last being a null entry.
     uint16_t count;
-} FATDirectoryTable;
+    uint16_t start_cluster;
+} FATDirectory;
 
+void fat_init(); // Initialize this driver
+void fat_read(); // Read the FAT
+void fat_flush(); // Write the FAT back to the disk
 
-void fat_init();
 uint16_t fat_pair_decode(Fat12Pair bytes, uint8_t which);
-void fat_read();
+Fat12Pair fat_pair_encode(uint16_t first, uint16_t second);
+
+uint16_t fat_chain_add(uint16_t cluster);
+uint16_t fat_chain_start();
+
+FATDirectory fat_directory_read(uint16_t start_cluster);
+int fat_directory_write(FATDirectory* directory);
+
 int fat_file_num_clusters(uint16_t start_cluster);
-FATDirectoryTable fat_directory_read(uint16_t start_cluster);
+
+// Returns bytes read, or -1 if error
+int fat_file_read(FATFile* file, uint8_t* buf, uint32_t length, uint32_t skip); 
+// Returns bytes written, or -1 if error
+int fat_file_write(FATFile* file, uint8_t* buf, uint32_t length, uint32_t skip);
+FATFile* fat_file_create(char* filename, FATDirectory* directory, uint8_t attributes);
+
 
 #endif
