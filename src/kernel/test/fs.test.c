@@ -6,6 +6,8 @@
 #include "util/logging.h"
 
 void fs_test() {
+    log_info("fs_test: running filesystem tests.");
+
     // 1. Open invalid file
     int fd = open("/BOGUS.TXT", 0);
     assert_i(-1, fd);
@@ -57,6 +59,6 @@ void fs_test() {
     close(fd);
     uint8_t color = print_color_get();
     print_color_set(0x0A);
-    log_info("fs: tests completed successfully.");
+    log_info("fs_test: filesystem tests completed successfully.");
     print_color_set(color);
 }

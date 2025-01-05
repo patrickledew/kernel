@@ -64,7 +64,8 @@ DEF_ISR_STUB_IRQ(0x2E);
 DEF_ISR_STUB_IRQ(0x2F);
 
 // Sets up the Interrupt Descriptor Table (IDT)
-void int_idt_setup() {
+void int_init() {
+    log_info("int_init: initializing interrupt descriptor table.");
     // Populate IDT descriptor
     _idtr.offset = (uint32_t)&_idt;
     _idtr.size = 0xFF * 0x08; // 256 entries

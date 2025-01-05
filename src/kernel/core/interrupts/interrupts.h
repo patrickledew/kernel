@@ -57,7 +57,7 @@ void int_disable();
 void int_enable();
 
 // Interrupt Descriptor Table (IDT) related functions
-void int_idt_setup();
+void int_init();
 void int_idt_load();
 
 // PIC functions

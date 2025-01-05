@@ -2,230 +2,223 @@
      2                                  ;; 512b
      3                                  [org 0x7c00]
      4                                  [bits 16]
-     5                                  ; if using ELF, we can get debug symbols in gdb
-     6                                  ; maybe we generate with elf, then objcopy everything to a binary
-     7                                  ; how are orgs defined then?
-     8                                  ; BUT ld only supports 32 bit
-     9                                  
-    10                                  ;;hgmmmmm
-    11                                  ; how bout we use ELF, use that elf file for gdb, then ld
-    12                                  
-    13                                  section .boot
-    14                                  
-    15                                  load_kernel:
-    16 00000000 BF[D800]                    mov di, string_loading_kernel
-    17 00000003 E87100                      call print_str
-    18                                  
-    19                                      ; kernel should be on disk immediately after this boot sector, from 0x200 onwards
-    20                                      ; we want to load this to memory address 0x10000
-    21 00000006 B402                        mov ah, 02h ; read sectors from drive - apparently 42h has more functionality
-    22 00000008 B080                        mov al, 0x80 ; Copy up to 128 sectors (0x10000 bytes)
-    23 0000000A B500                        mov ch, 0 ; Cylinder 0
-    24 0000000C B102                        mov cl, 2 ; 2nd sector, containing kernel
-    25 0000000E B600                        mov dh, 0 ; Head 0
-    26 00000010 B280                        mov dl, 0x80 ; Drive 0x80 (first hard drive)
-    27                                      ; load to 0x10000
-    28 00000012 BB0010                      mov bx, 0x1000
-    29 00000015 8EC3                        mov es, bx 
-    30 00000017 31DB                        xor bx, bx
-    31 00000019 CD13                        int 13h
-    32                                  
-    33                                  setup_gdt:
-    34 0000001B BF[FC00]                    mov di, string_setup_gdt
-    35 0000001E E85600                      call print_str
-    36 00000021 FA                          cli
-    37                                      ; Setup GDT
-    38 00000022 6631C0                      xor eax, eax
-    39 00000025 66B8[C0000000]              mov eax, gdt ; Get address of gdt
-    40 0000002B 66A3[BC00]                  mov [gdtr + 2], eax ; Store in base
-    41 0000002F 66B8[D8000000]              mov eax, gdt_end ; Get length of gdt
-    42 00000035 662D[C0000000]              sub eax, gdt
-    43 0000003B A3[BA00]                    mov [gdtr], ax ; Store in limit
-    44                                  
-    45 0000003E 0F0116[BA00]                lgdt [gdtr] ; Load the GDT record
-    46                                  
-    47                                  set_protected_mode:
-    48 00000043 BF[1001]                    mov di, string_protected_mode
-    49 00000046 E82E00                      call print_str
-    50                                      ; Set protected mode bit
-    51 00000049 0F20C0                      mov eax, cr0
-    52 0000004C 6683C801                    or eax, 1
-    53 00000050 0F22C0                      mov cr0, eax
-    54                                      ; We can't execute 32 bit code until we reload CS, which is done via a far jump
-    55                                      ; We still need to move the kernel to the correct address, so we do that first
-    56 00000053 EA[5800]0800                jmp 0x08:move_kernel
-    57                                  
-    58                                  [bits 32]
-    59                                  ;; Now kernel is loaded at 0x10000-0x14000, we want to copy it to 0x100000
-    60                                  ;; need to move 0x4000 bytes
-    61                                  move_kernel:
-    62 00000058 BE00000100                  mov esi, 0x10000
-    63 0000005D BF00001000                  mov edi, 0x100000
-    64 00000062 B900400000                  mov ecx, 0x4000 ; 0x4000 double words = 0x10000 bytes
-    65 00000067 66B81000                    mov ax, 0x10
-    66 0000006B 8EC0                        mov es, ax
-    67 0000006D 8ED8                        mov ds, ax
-    68 0000006F F366A5                      rep movsw
-    69                                  
-    70                                  ; Now we finally jump to the kernel_init code!
-    71                                  jump_kernel:
-    72 00000072 E9(00001000)                jmp 0x100000 ; Jump using first GDT segment (offset 0x08), which is the kernel
-    73                                  
-    74                                  
-    75                                  [bits 16]
-    76                                  ;; UTILITIES
-    77                                  
-    78                                  ;; print_str
-    79                                  ;; args:
-    80                                  ;;    ds - null terminated string segment 
-    81                                  ;;    di - null terminated string address
-    82                                  ;; uses the current cursor pos
-    83                                  print_str:
-    84 00000077 50                          push ax
-    85 00000078 53                          push bx
-    86 00000079 51                          push cx
-    87 0000007A 52                          push dx
-    88                                      _print_char:
-    89                                          ; get character
-    90 0000007B 8B05                            mov ax, [di]
-    91                                          ; if null terminator encountered, return
-    92 0000007D 3C00                            cmp al, 0
-    93 0000007F 7434                            je _null
-    94 00000081 3C0A                            cmp al, `\n` ; newline
-    95 00000083 7420                            je _handle_newline
-    96                                          ; print char
-    97 00000085 B40A                            mov ah, 0Ah
-    98 00000087 B700                            mov bh, 0
-    99 00000089 B90100                          mov cx, 1
-   100 0000008C CD10                            int 10h
-   101                                      _set_cursor_pos:
-   102                                          __get_pos:
-   103 0000008E B403                                mov ah, 03h
-   104 00000090 B700                                mov bh, 0
-   105 00000092 CD10                                int 10h ; now dl = current col
-   106                                          __get_size:
-   107 00000094 B40F                                mov ah, 0Fh
-   108 00000096 CD10                                int 10h ; now ah = num cols
-   109                                          __inc_col:
-   110 00000098 FEC2                                inc dl
-   111                                          __overflow_check:
-   112 0000009A 38E2                                cmp dl, ah
-   113 0000009C 7407                                je _handle_newline
-   114                                          __set_pos:
-   115 0000009E B402                                mov ah, 02h ; set position
-   116 000000A0 CD10                                int 10h
-   117                                      _repeat:
-   118                                          ; increment dx and repeat
-   119 000000A2 47                              inc di
-   120 000000A3 EBD6                            jmp _print_char
-   121                                  
-   122                                      ; special cases
-   123                                      _handle_newline:
-   124                                          ; get current pos
-   125 000000A5 B403                            mov ah, 03h
-   126 000000A7 B700                            mov bh, 0
-   127 000000A9 CD10                            int 10h
-   128 000000AB FEC6                            inc dh ; increment row
-   129 000000AD 30D2                            xor dl, dl ; zero out column
-   130 000000AF B402                            mov ah, 02h ; set position
-   131 000000B1 CD10                            int 10h
-   132 000000B3 EBED                            jmp _repeat
-   133                                      _null:
-   134 000000B5 5A                              pop dx
-   135 000000B6 59                              pop cx
-   136 000000B7 5B                              pop bx
-   137 000000B8 58                              pop ax
-   138 000000B9 C3                              ret
-   139                                  
-   140                                  ;; GDT Info
-   141                                  
-   142                                  gdtr:
-   143 000000BA 0000                        dw 0 ; limit of GDT record
-   144 000000BC 00000000                    dd 0 ; base of GDT record
-   145                                  
-   146                                  gdt:
-   147                                      %include "src/boot/gdt.s"
-   148                              <1> ;; Global Descriptor Table
-   149                              <1> ;; Contains segment descriptors, which are data structures that specify the location, size,
-   150                              <1> ;; and other information about memory segments. These can be accessed via jmp instructions, e.g.
-   151                              <1> ;; jmp 0x08:0x1234, which will jump to offset 0x1234 within the region described by the first segment descriptor.
-   152                              <1> 
-   153                              <1> 
-   154                              <1> ;; For simplicity, this uses a flat address space. Both code and data segments for the kernel cover Page 0 - Page 0x1FFFFF.
-   155                              <1> 
-   156                              <1> ;; Null descriptor
-   157                              <1> entry_null:
-   158 000000C0 00<rep 8h>          <1>     times 8 db 0 ; 8 null bytes
-   159                              <1> entry_1: ; Kernel code segment
-   160 000000C8 FFFF                <1>     _1_limit_low   dw 0xFFFF    ; Limit - maximum addressable unit, this leaves 64KiB for kernel code
-   161 000000CA 0000                <1>     _1_base_low    dw 0x0000    ; LSBs of base address
-   162 000000CC 00                  <1>     _1_base_mid    db 0x00      ; Next MSB of base
-   163 000000CD 9A                  <1>     _1_access      db 10011010b ; Present, Privilege (00 - Kernel), Descriptor Type (1 - Code/Data), Executable (1), Conforming (0), Readable (1), Accessed (1)
-   164 000000CE DF                  <1>     _1_flags_limit db 11011111b ; First 3 bits are flags (Granularity: Page, Size: 32bit, Long mode: No), rest are MSBs of limit
-   165 000000CF 00                  <1>     _1_base_high   db 0x00      ; MSB of base
-   166                              <1> entry_2: ; Kernel data segment
-   167 000000D0 FFFF                <1>     _2_limit_low   dw 0xFFFF    ; Limit - maximum addressable unit
-   168 000000D2 0000                <1>     _2_base_low    dw 0x0000    ; LSBs of base address
-   169 000000D4 00                  <1>     _2_base_mid    db 0x00      ; Next MSB of base
-   170 000000D5 92                  <1>     _2_access      db 10010010b ; Present, Privilege (00 - Kernel), Descriptor Type (1 - Code/Data), Executable (0), Conforming (0), Readable (1), Accessed (1)
-   171 000000D6 DF                  <1>     _2_flags_limit db 11011111b ; First 3 bits are flags (Granularity: Page, Size: 32bit, Long mode: No), rest are MSBs of limit
-   172 000000D7 00                  <1>     _2_base_high   db 0x00      ; MSB of base
-   148                                  gdt_end:
+     5                                  
+     6                                  section .boot
+     7                                  
+     8                                  load_kernel:
+     9 00000000 BF[D700]                    mov di, string_loading_kernel
+    10 00000003 E87000                      call print_str
+    11                                  
+    12                                      ; kernel should be on disk immediately after this boot sector, from 0x200 onwards
+    13                                      ; we want to load this to memory address 0x10000
+    14 00000006 B402                        mov ah, 02h ; read sectors from drive - apparently 42h has more functionality
+    15 00000008 B080                        mov al, 0x80 ; Copy up to 128 sectors (0x10000 bytes)
+    16 0000000A B500                        mov ch, 0 ; Cylinder 0
+    17 0000000C B102                        mov cl, 2 ; 2nd sector, containing kernel
+    18 0000000E B600                        mov dh, 0 ; Head 0
+    19 00000010 B280                        mov dl, 0x80 ; Drive 0x80 (first hard drive)
+    20                                      ; load to 0x10000
+    21 00000012 BB0010                      mov bx, 0x1000
+    22 00000015 8EC3                        mov es, bx 
+    23 00000017 31DB                        xor bx, bx
+    24 00000019 CD13                        int 13h
+    25                                  
+    26                                  setup_gdt:
+    27 0000001B BF[FB00]                    mov di, string_setup_gdt
+    28 0000001E E85500                      call print_str
+    29 00000021 FA                          cli
+    30                                      ; Setup GDT
+    31 00000022 6631C0                      xor eax, eax
+    32 00000025 66B8[BF000000]              mov eax, gdt ; Get address of gdt
+    33 0000002B 66A3[BB00]                  mov [gdtr + 2], eax ; Store in base
+    34 0000002F 66B8[D7000000]              mov eax, gdt_end ; Get length of gdt
+    35 00000035 662D[BF000000]              sub eax, gdt
+    36 0000003B A3[B900]                    mov [gdtr], ax ; Store in limit
+    37                                  
+    38 0000003E 0F0116[B900]                lgdt [gdtr] ; Load the GDT record
+    39                                  
+    40                                  set_protected_mode:
+    41 00000043 BF[0F01]                    mov di, string_protected_mode
+    42 00000046 E82D00                      call print_str
+    43                                      ; Set protected mode bit
+    44 00000049 0F20C0                      mov eax, cr0
+    45 0000004C 6683C801                    or eax, 1
+    46 00000050 0F22C0                      mov cr0, eax
+    47                                      ; We can't execute 32 bit code until we reload CS, which is done via a far jump
+    48                                      ; We still need to move the kernel to the correct address, so we do that first
+    49 00000053 EA[5800]0800                jmp 0x08:move_kernel
+    50                                  
+    51                                  [bits 32]
+    52                                  ;; Now kernel is loaded at 0x10000-0x14000, we want to copy it to 0x100000
+    53                                  ;; need to move 0x4000 bytes
+    54                                  move_kernel:
+    55 00000058 BE00000100                  mov esi, 0x10000
+    56 0000005D BF00001000                  mov edi, 0x100000
+    57 00000062 B900400000                  mov ecx, 0x4000 ; 0x4000 double words = 0x10000 bytes
+    58 00000067 66B81000                    mov ax, 0x10
+    59 0000006B 8EC0                        mov es, ax
+    60 0000006D 8ED8                        mov ds, ax
+    61 0000006F F3A5                        rep movsd
+    62                                  
+    63                                  ; Now we finally jump to the kernel_init code!
+    64                                  jump_kernel:
+    65 00000071 E9(00001000)                jmp 0x100000 ; Jump using first GDT segment (offset 0x08), which is the kernel
+    66                                  
+    67                                  
+    68                                  [bits 16]
+    69                                  ;; UTILITIES
+    70                                  
+    71                                  ;; print_str
+    72                                  ;; args:
+    73                                  ;;    ds - null terminated string segment 
+    74                                  ;;    di - null terminated string address
+    75                                  ;; uses the current cursor pos
+    76                                  print_str:
+    77 00000076 50                          push ax
+    78 00000077 53                          push bx
+    79 00000078 51                          push cx
+    80 00000079 52                          push dx
+    81                                      _print_char:
+    82                                          ; get character
+    83 0000007A 8B05                            mov ax, [di]
+    84                                          ; if null terminator encountered, return
+    85 0000007C 3C00                            cmp al, 0
+    86 0000007E 7434                            je _null
+    87 00000080 3C0A                            cmp al, `\n` ; newline
+    88 00000082 7420                            je _handle_newline
+    89                                          ; print char
+    90 00000084 B40A                            mov ah, 0Ah
+    91 00000086 B700                            mov bh, 0
+    92 00000088 B90100                          mov cx, 1
+    93 0000008B CD10                            int 10h
+    94                                      _set_cursor_pos:
+    95                                          __get_pos:
+    96 0000008D B403                                mov ah, 03h
+    97 0000008F B700                                mov bh, 0
+    98 00000091 CD10                                int 10h ; now dl = current col
+    99                                          __get_size:
+   100 00000093 B40F                                mov ah, 0Fh
+   101 00000095 CD10                                int 10h ; now ah = num cols
+   102                                          __inc_col:
+   103 00000097 FEC2                                inc dl
+   104                                          __overflow_check:
+   105 00000099 38E2                                cmp dl, ah
+   106 0000009B 7407                                je _handle_newline
+   107                                          __set_pos:
+   108 0000009D B402                                mov ah, 02h ; set position
+   109 0000009F CD10                                int 10h
+   110                                      _repeat:
+   111                                          ; increment dx and repeat
+   112 000000A1 47                              inc di
+   113 000000A2 EBD6                            jmp _print_char
+   114                                  
+   115                                      ; special cases
+   116                                      _handle_newline:
+   117                                          ; get current pos
+   118 000000A4 B403                            mov ah, 03h
+   119 000000A6 B700                            mov bh, 0
+   120 000000A8 CD10                            int 10h
+   121 000000AA FEC6                            inc dh ; increment row
+   122 000000AC 30D2                            xor dl, dl ; zero out column
+   123 000000AE B402                            mov ah, 02h ; set position
+   124 000000B0 CD10                            int 10h
+   125 000000B2 EBED                            jmp _repeat
+   126                                      _null:
+   127 000000B4 5A                              pop dx
+   128 000000B5 59                              pop cx
+   129 000000B6 5B                              pop bx
+   130 000000B7 58                              pop ax
+   131 000000B8 C3                              ret
+   132                                  
+   133                                  ;; GDT Info
+   134                                  
+   135                                  gdtr:
+   136 000000B9 0000                        dw 0 ; limit of GDT record
+   137 000000BB 00000000                    dd 0 ; base of GDT record
+   138                                  
+   139                                  gdt:
+   140                                      %include "src/boot/gdt.s"
+   141                              <1> ;; Global Descriptor Table
+   142                              <1> ;; Contains segment descriptors, which are data structures that specify the location, size,
+   143                              <1> ;; and other information about memory segments. These can be accessed via jmp instructions, e.g.
+   144                              <1> ;; jmp 0x08:0x1234, which will jump to offset 0x1234 within the region described by the first segment descriptor.
+   145                              <1> 
+   146                              <1> 
+   147                              <1> ;; For simplicity, this uses a flat address space. Both code and data segments for the kernel cover Page 0 - Page 0x1FFFFF.
+   148                              <1> 
+   149                              <1> ;; Null descriptor
+   150                              <1> entry_null:
+   151 000000BF 00<rep 8h>          <1>     times 8 db 0 ; 8 null bytes
+   152                              <1> entry_1: ; Kernel code segment
+   153 000000C7 FFFF                <1>     _1_limit_low   dw 0xFFFF    ; Limit - maximum addressable unit, this leaves 64KiB for kernel code
+   154 000000C9 0000                <1>     _1_base_low    dw 0x0000    ; LSBs of base address
+   155 000000CB 00                  <1>     _1_base_mid    db 0x00      ; Next MSB of base
+   156 000000CC 9A                  <1>     _1_access      db 10011010b ; Present, Privilege (00 - Kernel), Descriptor Type (1 - Code/Data), Executable (1), Conforming (0), Readable (1), Accessed (1)
+   157 000000CD DF                  <1>     _1_flags_limit db 11011111b ; First 3 bits are flags (Granularity: Page, Size: 32bit, Long mode: No), rest are MSBs of limit
+   158 000000CE 00                  <1>     _1_base_high   db 0x00      ; MSB of base
+   159                              <1> entry_2: ; Kernel data segment
+   160 000000CF FFFF                <1>     _2_limit_low   dw 0xFFFF    ; Limit - maximum addressable unit
+   161 000000D1 0000                <1>     _2_base_low    dw 0x0000    ; LSBs of base address
+   162 000000D3 00                  <1>     _2_base_mid    db 0x00      ; Next MSB of base
+   163 000000D4 92                  <1>     _2_access      db 10010010b ; Present, Privilege (00 - Kernel), Descriptor Type (1 - Code/Data), Executable (0), Conforming (0), Readable (1), Accessed (1)
+   164 000000D5 DF                  <1>     _2_flags_limit db 11011111b ; First 3 bits are flags (Granularity: Page, Size: 32bit, Long mode: No), rest are MSBs of limit
+   165 000000D6 00                  <1>     _2_base_high   db 0x00      ; MSB of base
+   141                                  gdt_end:
+   142                                  
+   143                                  string_loading_kernel:
+   144 000000D7 4C6F6164696E67206B-         dw `Loading kernel from disk image...\n`, 0
+   144 000000E0 65726E656C2066726F-
+   144 000000E9 6D206469736B20696D-
+   144 000000F2 6167652E2E2E0A0000 
+   145                                  string_setup_gdt:
+   146 000000FB 53657474696E672075-         dw `Setting up GDT...\n`, 0
+   146 00000104 70204744542E2E2E0A-
+   146 0000010D 0000               
+   147                                  string_protected_mode:
+   148 0000010F 5475726E696E67206F-         dw `Turning on protected mode and jumping to kernel...\n`, 0
+   148 00000118 6E2070726F74656374-
+   148 00000121 6564206D6F64652061-
+   148 0000012A 6E64206A756D70696E-
+   148 00000133 6720746F206B65726E-
+   148 0000013C 656C2E2E2E0A000000 
    149                                  
-   150                                  string_loading_kernel:
-   151 000000D8 4C6F6164696E67206B-         dw `Loading kernel from disk image...\n`, 0
-   151 000000E1 65726E656C2066726F-
-   151 000000EA 6D206469736B20696D-
-   151 000000F3 6167652E2E2E0A0000 
-   152                                  string_setup_gdt:
-   153 000000FC 53657474696E672075-         dw `Setting up GDT...\n`, 0
-   153 00000105 70204744542E2E2E0A-
-   153 0000010E 0000               
-   154                                  string_protected_mode:
-   155 00000110 5475726E696E67206F-         dw `Turning on protected mode and jumping to kernel...\n`, 0
-   155 00000119 6E2070726F74656374-
-   155 00000122 6564206D6F64652061-
-   155 0000012B 6E64206A756D70696E-
-   155 00000134 6720746F206B65726E-
-   155 0000013D 656C2E2E2E0A000000 
-   156                                  
-   157 00000146 90<rep 72h>             times (0x1B8 - ($ - $$)) nop
-   158 000001B8 42424242                    dd 0x42424242 ;; Disk signature
-   159 000001BC 0000                        dw 0x0000
-   160                                  times (0x1BE - ($ - $$)) nop
-   161                                  partition_entry_1: ;; KERNEL IMAGE PARTITION
-   162 000001BE 80                          db 0x80 ; Primary disk
-   163                                      
-   164                                      ;; Start of partition
-   165 000001BF 00                          db 0x00 ; Head 0
-   166 000001C0 02                          db 0b00000010 ; Sector 2 (1-indexed)
-   167 000001C1 00                          db 0x00 ; Cylinder 0
-   168 000001C2 7F                          db 0x7F ; partition type (must be non-zero)
-   169                                      
-   170                                      ;; End of partition    
-   171                                      ;; We copied 0x80 sectors, so 0x81 is the last sector
-   172 000001C3 02                          db 0x02 ; Head 2
-   173 000001C4 03                          db 0x03 ; Sector 3 (1-indexed)
-   174 000001C5 00                          db 0x00 ; Cylinder 0
-   175                                  
-   176 000001C6 01000000                    dd 0x01  ; LBA of start of partition (Sector 1, zero indexed)
-   177 000001CA 80000000                    dd 0x80  ; Sectors in partition
-   178                                  partition_entry_2: ;; RESERVED FOR FILESYSTEM EXPERIMENTATION
-   179 000001CE 80                          db 0x80 ; Primary disk
-   180                                  
-   181                                      ;; Start of partition - LBA 0x81
-   182 000001CF 02                          db 0x02 ; Head 2
-   183 000001D0 04                          db 0x04 ; Sector 4 (1-indexed)
-   184 000001D1 00                          db 0x00 ; Cylinder 0
-   185 000001D2 01                          db 0x01 ; partition type (FAT12)
+   150 00000145 90<rep 73h>             times (0x1B8 - ($ - $$)) nop
+   151 000001B8 42424242                    dd 0x42424242 ;; Disk signature
+   152 000001BC 0000                        dw 0x0000
+   153                                  times (0x1BE - ($ - $$)) nop
+   154                                  partition_entry_1: ;; KERNEL IMAGE PARTITION
+   155 000001BE 80                          db 0x80 ; Primary disk
+   156                                      
+   157                                      ;; Start of partition
+   158 000001BF 00                          db 0x00 ; Head 0
+   159 000001C0 02                          db 0b00000010 ; Sector 2 (1-indexed)
+   160 000001C1 00                          db 0x00 ; Cylinder 0
+   161 000001C2 7F                          db 0x7F ; partition type (must be non-zero)
+   162                                      
+   163                                      ;; End of partition    
+   164                                      ;; We copied 0x80 sectors, so 0x81 is the last sector
+   165 000001C3 02                          db 0x02 ; Head 2
+   166 000001C4 03                          db 0x03 ; Sector 3 (1-indexed)
+   167 000001C5 00                          db 0x00 ; Cylinder 0
+   168                                  
+   169 000001C6 01000000                    dd 0x01  ; LBA of start of partition (Sector 1, zero indexed)
+   170 000001CA 80000000                    dd 0x80  ; Sectors in partition
+   171                                  partition_entry_2: ;; RESERVED FOR FILESYSTEM EXPERIMENTATION
+   172 000001CE 80                          db 0x80 ; Primary disk
+   173                                  
+   174                                      ;; Start of partition - LBA 0x81
+   175 000001CF 02                          db 0x02 ; Head 2
+   176 000001D0 04                          db 0x04 ; Sector 4 (1-indexed)
+   177 000001D1 00                          db 0x00 ; Cylinder 0
+   178 000001D2 01                          db 0x01 ; partition type (FAT12)
+   179                                      
+   180                                      ;; End of partition - LBA 0x882    
+   181 000001D3 02                          db 0x02 ; Head 2
+   182 000001D4 25                          db 0x25 ; Sector 37 (1-indexed)
+   183 000001D5 02                          db 0x02 ; Cylinder 2
+   184 000001D6 81000000                    dd 0x81  ; LBA of start of partition (Sector 1, zero indexed)
+   185 000001DA 00080000                    dd 0x800  ; Sectors in partition
    186                                      
-   187                                      ;; End of partition - LBA 0x882    
-   188 000001D3 02                          db 0x02 ; Head 2
-   189 000001D4 25                          db 0x25 ; Sector 37 (1-indexed)
-   190 000001D5 02                          db 0x02 ; Cylinder 2
-   191 000001D6 81000000                    dd 0x81  ; LBA of start of partition (Sector 1, zero indexed)
-   192 000001DA 00080000                    dd 0x800  ; Sectors in partition
-   193                                      
-   194 000001DE 00<rep 20h>             times (0x1FE - ($ - $$)) db 0x00 ;; pad for boot signature
-   195                                  bootsig:
-   196 000001FE 55AA                        dw 0xAA55 ; Boot signature
+   187 000001DE 00<rep 20h>             times (0x1FE - ($ - $$)) db 0x00 ;; pad for boot signature
+   188                                  bootsig:
+   189 000001FE 55AA                        dw 0xAA55 ; Boot signature

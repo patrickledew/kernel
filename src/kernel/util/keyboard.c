@@ -6,6 +6,7 @@
 #include "core/interrupts/interrupts.h"
 
 void keyboard_init() {
+    log_info("keyboard_init: initializing keyboard driver.");
     ADD_ISR(0x21, keyboard_isr); // Initialize keyboard IRQ
 }
 
@@ -46,7 +47,7 @@ void keyboard_scancode_recieve() {
 
     if (sc & 0x80) return; // If 8th bit set, this is a key release
 
-    log_number_at("Scancode", sc, 16, 10, 30);
+    log_number_at("SC", sc, 16, 0, 70);
 
     char ch = keyboard_scancode_get_char(sc, lshift || rshift);
 

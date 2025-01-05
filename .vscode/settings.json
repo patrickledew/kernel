@@ -9,7 +9,8 @@
         "print.h": "c",
         "portio.h": "c",
         "timer.h": "c",
-        "strutil.h": "c"
+        "strutil.h": "c",
+        "vmem.h": "c"
     },
     "debug.onTaskErrors": "debugAnyway"
 }

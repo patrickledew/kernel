@@ -2,13 +2,6 @@
 ;; 512b
 [org 0x7c00]
 [bits 16]
-; if using ELF, we can get debug symbols in gdb
-; maybe we generate with elf, then objcopy everything to a binary
-; how are orgs defined then?
-; BUT ld only supports 32 bit
-
-;;hgmmmmm
-; how bout we use ELF, use that elf file for gdb, then ld
 
 section .boot
 
@@ -65,7 +58,7 @@ move_kernel:
     mov ax, 0x10
     mov es, ax
     mov ds, ax
-    rep movsw
+    rep movsd
 
 ; Now we finally jump to the kernel_init code!
 jump_kernel:

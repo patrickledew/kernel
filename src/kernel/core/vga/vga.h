@@ -7,7 +7,7 @@
 
 #define VGA_COLS 80
 #define VGA_ROWS 25
-#define VGA_MEMORY ((uint8_t*)0xB8000)
+#define VGA_MEMORY ((uint8_t*)0xC03FF000)
 
 
 void vga_reg_set(uint16_t address_port, uint16_t data_port, uint8_t reg, uint8_t byte);

@@ -16,51 +16,61 @@
 int uptime = 0;
 
 void show_uptime() {
-    log_number_at_u("Uptime", uptime++, 10, 0, 55);
+    log_number_at_u("UP", uptime++, 10, 0, 55);
 }
 
 void trap() {
     while(1) {}
 }
 
-void kmain() {
+void print_kernel_addr() {    
     print_screen_fill(' ', 0x0F);
-    log_number_u("kmain: kernel begin", (uint32_t)KERNEL_BEGIN, 16);
-    log_number_u("kmain: kernel end", (uint32_t)KERNEL_END, 16);
+    uint8_t c = print_color_get();
+    print_color_set(0x0A);
+    print("kmain: kernel mapped to 0x");
+    print_num_u((uint32_t)KERNEL_BEGIN, 16);
+    print("-0x");
+    print_num_u((uint32_t)KERNEL_END, 16);
+    println(".");
+    print_color_set(c);
+}
 
-    log_info("kmain: initializing physical memory manager...");
+void kmain() {
+    print_kernel_addr();
+    vmem_init();
+
+    // TODO: Zap first page directory entry
+
+    /** Start physical memory manager */
     mem_init(0x1000);
-/*
-    log_info("kmain: initializing interrupt descriptor table...");
-    int_idt_setup(); // Initialize interrupt descriptor table (IDT)
 
-    log_info("kmain: initializing hardware timer...");
-    timer_pit_init(1000); // Initialize hardware timer at 1khz
-
-    log_info("kmain: initializing keyboard...");
-    keyboard_init(); // Initialize keyboard driver
-
-    log_info("kmain: Initializing disk driver...");
-    disk_init();
-
-    // After all interrupts have been registered, load IDT and enable interrupts
-    log_info("kmain: enabling interrupts...");
-    int_start();
-
+    /** Initialize interrupts, then initialize everything that registers an interrupt handler */
+    int_init(); // Initialize interrupt descriptor table (IDT)
+    
+    timer_init(1000); // Initialize hardware timer at 1khz
     timer_interval_set(1000, show_uptime);
     timer_interval_set(10, print_cursor_refresh);
 
-    log_info("kmain: Initializing FAT12 filesystem driver...");
+    keyboard_init(); // Initialize keyboard driver
+    disk_init(); // Initialize ATA disk driver
+
+    // Once all ISRs are registered, enable interrupts
+    int_start();
+
+    /** Initialize the filesystem driver to read in our filesystem */
     fat_init();
-*/
-    /// Testing virtual memory / paging
 
-    // vmem_init();
-    trap();
-}
+    /**
+     * -=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+     * Extra space to do other stuff.
+     * -=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+     */
+    fs_test();
 
-// Function for us to jump to after enabling virtual memory
-void vmain() {
-    log_info("Made it to vmain");
+    /**
+     * -=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+     */
+
+    /** Trap the kernel in an infinite loop */
     trap();
 }

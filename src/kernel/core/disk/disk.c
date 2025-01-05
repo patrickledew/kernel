@@ -34,6 +34,7 @@ bool disk_detect_floating() {
 }
 
 void disk_init() {
+    log_info("disk_init: initializing ATA disk driver.");
     int_isr_register(ATA_PRIMARY_IRQ, (uint32_t)disk_irq);
 
     if (disk_detect_floating()) {

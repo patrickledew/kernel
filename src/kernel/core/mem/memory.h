@@ -5,7 +5,6 @@
 */
 
 #include "types.h"
-#include "offsets.h"
 
 #define PAGE_SIZE 0x1000
 
@@ -28,7 +27,7 @@ extern uint8_t __KERNEL_END;
 #define KERNEL_BEGIN &__KERNEL_BEGIN
 #define KERNEL_END &__KERNEL_END
 
-#define ALLOC_REGION_START 0x100000 // TODO change this
+#define ALLOC_REGION_START KERNEL_END
 
 void mem_init(int pages);
 uint8_t* alloc(uint32_t size);

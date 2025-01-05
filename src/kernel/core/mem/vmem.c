@@ -1,54 +1,28 @@
 #include "vmem.h"
 #include "memory.h"
 #include "util/logging.h"
-#include "offsets.h"
 
-uint32_t k_page_directory[1024] __attribute__((aligned(4096)));
-uint32_t k_page_table[1024] __attribute__((aligned(4096))); // 0x00000-0x1FFFF
+uint32_t* kernel_page_directory;
+uint32_t* kernel_page_table;
 
 void vmem_init() {
-    // To test, we want to map a region of memory and try accessing it
-    vmem_init_tables();
-    vmem_enable();
-    vmem_setup_stack();
-    offset_kernel_set(0xc0000000);
-    log_info("vmem_init: made it past vmem_enable");
-    vmem_init_zap();
-    log_info("vmem_init: made it past vmem_init_zap");
-
-    while(1) {}
+    kernel_page_directory = _KERNEL_PAGE_DIRECTORY + 0xC0000000 / 4;
+    kernel_page_table = _KERNEL_PAGE_TABLE + 0xC0000000 / 4;
+    log_info("vmem_init: cleaning up memory map.");
+    vmem_zap_identity();
 }
 
-void vmem_init_tables() {
-    log_info("vmem: creating page tables");
-    // k_page_directory = (uint32_t*)alloc(4096);
-    // k_page_table = (uint32_t*)alloc(4096);
-    for (int i = 0; i < 1024; i++) {
-        k_page_directory[i] = 0x2; // Set as not present, supervisor only, write enabled
-    }
-
-    // Map first 4MiB of memory for kernel use
-    for (int i = 0; i < 1024; i++) {
-        k_page_table[i] = (i * 0x1000) | PAGE_ENTRY_MASK_PRESENT | PAGE_ENTRY_MASK_READWRITE;
-    }
-
-    // Map virtual address ranges 0x0000-0x1FFFF and 0xc0000000-0xc000FFFF
-    // to physical address range 0x0000-0x1FFFF
-    k_page_directory[0] = (uint32_t)k_page_table | PAGE_ENTRY_MASK_PRESENT | PAGE_ENTRY_MASK_READWRITE;
-    k_page_directory[0x300] = (uint32_t)k_page_table | PAGE_ENTRY_MASK_PRESENT | PAGE_ENTRY_MASK_READWRITE;
+void vmem_zap_identity() {
+     // Overwrite first page directory entry
+     // this is the identity entry that maps 0x0 - 0x400000 to itself
+    kernel_page_directory[0] = 0;
+    vmem_load(kernel_page_directory);
 }
 
-// Gets rid of the first (temporary) page directory entry mapping first 4MiB of virtual addresses
-void vmem_init_zap() {
-    k_page_directory[0] = 0;
-    vmem_pd_load();
+void vmem_load(uint32_t* page_directory) {
+    vmem_load_absolute(page_directory - 0xC0000000 / 4);
 }
 
-// Load the address of the kernel page directory into CR3
-void vmem_pd_load() {
-    // Since CR3 always refers to the absolute address of the page directory, and
-    // we may be calling this function after paging is enabled (making the address
-    // of k_page_directory 0xc0000000 bytes larger than it is in absolute terms),
-    // we need to subtract the current virtual kernel offset from it.
-    __asm__("mov %%eax, %%cr3" :: "a"((uint32_t)k_page_directory - (uint32_t)kernel_space_offset));
+void vmem_load_absolute(uint32_t* page_directory) {
+    __asm__("mov %0, %%cr3" :: "a"(page_directory));
 }

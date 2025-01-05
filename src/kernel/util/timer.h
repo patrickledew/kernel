@@ -48,7 +48,7 @@ typedef struct {
     void (*routine)(); // The routine to run.
 } interval_desc;
 
-void timer_pit_init(uint16_t freq);
+void timer_init(uint16_t freq);
 void timer_isr(InterruptFrame* frame);
 void timer_tick();
 void timer_interval_run();

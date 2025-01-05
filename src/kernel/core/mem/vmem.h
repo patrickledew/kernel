@@ -13,16 +13,14 @@
 #define PAGE_ENTRY_MASK_PAGESIZE    0b000100000000 // Enable 4MiB paging if set
 #define PAGE_ENTRY_MASK_UNUSED      0b111001000000 // Unused bits
 
-extern void vmem_enable();
-extern void vmem_setup_stack();
+extern uint32_t _KERNEL_PAGE_DIRECTORY[1024];
+extern uint32_t _KERNEL_PAGE_TABLE[1024];
+
 
 void vmem_init();
-
-void vmem_init_tables();
-
-void vmem_init_zap();
-
-void vmem_pd_load();
+void vmem_load(uint32_t* page_directory);
+void vmem_load_absolute(uint32_t* page_directory);
+void vmem_zap_identity(); // Zaps the identity page table, which we will no longer use
 
 // Map a virtual address to a physical address
 void vmem_map(uint32_t* page_directory, uint8_t* v_addr, uint8_t* p_addr, uint32_t size);

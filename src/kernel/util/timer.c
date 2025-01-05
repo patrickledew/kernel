@@ -5,7 +5,8 @@
 
 // Minimum frequency is ~18.2 hz, since the max value for count registers is 65535.
 // PIT_FREQ_HZ / 65535 = 18.2
-void timer_pit_init(uint16_t freq) {
+void timer_init(uint16_t freq) {
+    log_info("timer_init: initializing hardware timer.");
     uint16_t initial_count = PIT_FREQ_HZ / freq; // Run PIT at [freq]hz
     uint8_t ocw = PIT_OCW_BINCOUNT_BIN
                 | PIT_OCW_MODE_RATE
