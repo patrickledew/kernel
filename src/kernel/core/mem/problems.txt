@@ -1,0 +1,12 @@
+Currently, i'm running into the problem of strings still using their absolute addresses.
+This means that once we zap the identity PD entry, those addresses wont make sense
+
+Either we need to figure out some linker magic, or we're gonna be rebuilding the boot
+process to initialize virtual memory before we execute any of the main kernel code.
+
+Another way is to manually add the kernel offset to any strings we use but...ew.
+
+I honestly think the way to go is to:
+
+A. link kernel.elf so it starts at virtual address 0xc0000000
+B. extend the boot assembly to setup vmem, and only jump to kmain once that's done. 

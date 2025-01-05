@@ -11,6 +11,7 @@
 #include "util/strutil.h"
 #include "util/assert.h"
 #include "test/fs.test.h"
+#include "core/mem/vmem.h"
 
 int uptime = 0;
 
@@ -29,7 +30,7 @@ void kmain() {
 
     log_info("kmain: initializing physical memory manager...");
     mem_init(0x1000);
-
+/*
     log_info("kmain: initializing interrupt descriptor table...");
     int_idt_setup(); // Initialize interrupt descriptor table (IDT)
 
@@ -51,9 +52,15 @@ void kmain() {
 
     log_info("kmain: Initializing FAT12 filesystem driver...");
     fat_init();
+*/
+    /// Testing virtual memory / paging
 
-    // Todo: load an executable (shell) into memory and jump to it
+    // vmem_init();
+    trap();
+}
 
-
+// Function for us to jump to after enabling virtual memory
+void vmain() {
+    log_info("Made it to vmain");
     trap();
 }

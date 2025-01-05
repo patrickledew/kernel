@@ -15,10 +15,11 @@ section .boot
 load_kernel:
     mov di, string_loading_kernel
     call print_str
+
     ; kernel should be on disk immediately after this boot sector, from 0x200 onwards
     ; we want to load this to memory address 0x10000
     mov ah, 02h ; read sectors from drive - apparently 42h has more functionality
-    mov al, 0x80 ; Copy up to 32 sectors (32 * 512 bytes)
+    mov al, 0x80 ; Copy up to 128 sectors (0x10000 bytes)
     mov ch, 0 ; Cylinder 0
     mov cl, 2 ; 2nd sector, containing kernel
     mov dh, 0 ; Head 0
@@ -50,14 +51,28 @@ set_protected_mode:
     mov eax, cr0
     or eax, 1
     mov cr0, eax
-        
-;; Picking up where u left off:
-;; 1. gdb does not show correct address when long jumping
-;; 2. there's something faulting in kernel_init.s, causing infinite restart
+    ; We can't execute 32 bit code until we reload CS, which is done via a far jump
+    ; We still need to move the kernel to the correct address, so we do that first
+    jmp 0x08:move_kernel
 
+[bits 32]
+;; Now kernel is loaded at 0x10000-0x14000, we want to copy it to 0x100000
+;; need to move 0x4000 bytes
+move_kernel:
+    mov esi, 0x10000
+    mov edi, 0x100000
+    mov ecx, 0x4000 ; 0x4000 double words = 0x10000 bytes
+    mov ax, 0x10
+    mov es, ax
+    mov ds, ax
+    rep movsw
+
+; Now we finally jump to the kernel_init code!
 jump_kernel:
-    jmp dword 0x08:0x10000 ; Jump using first GDT segment (offset 0x08), which is the kernel
+    jmp 0x100000 ; Jump using first GDT segment (offset 0x08), which is the kernel
 
+
+[bits 16]
 ;; UTILITIES
 
 ;; print_str

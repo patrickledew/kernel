@@ -75,10 +75,15 @@ void int_isr_register(uint8_t index, uint32_t routine);
 void int_isr_stub(InterruptFrame* frame, uint8_t code);
 void int_isr_err_stub(InterruptFrameWithError* frame, uint8_t code);
 
+// Common functionality between fault routines
+void int_isr_fault_common(InterruptFrame* frame, char* code);
+void int_isr_fault_common_err(InterruptFrameWithError* frame, char* code);
+
 // ISRs to freeze the system when a GP, DF, or DZ is encountered
 void int_isr_fault_gp(InterruptFrameWithError* frame); // General Protection Fault
 void int_isr_fault_df(InterruptFrameWithError* frame); // Double Fault
 void int_isr_fault_dbz(InterruptFrame* frame); // Divide by Zero
+void int_isr_fault_pf(InterruptFrameWithError* frame); // Page Fault
 
 // Macros for registering ISRs
 #define ADD_ISR(i, isr) int_isr_register(i, (uint32_t)isr)

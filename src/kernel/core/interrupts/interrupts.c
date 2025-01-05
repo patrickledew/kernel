@@ -127,6 +127,7 @@ void int_idt_setup() {
     ADD_ISR(0x00, int_isr_fault_dbz);
     ADD_ISR(0x0D, int_isr_fault_gp);
     ADD_ISR(0x08, int_isr_fault_df);
+    ADD_ISR(0x0E, int_isr_fault_pf);     // #PF Page fault
 
     // Configure PIC
     int_pic_init();
@@ -230,7 +231,8 @@ void int_isr_stub(InterruptFrame* frame, uint8_t code) {
     log_number_u("CS", frame->cs, 16);
     log_number_u("FLAGS", frame->flags, 16);
     print_color_set(c);
-
+    int_disable();
+    __asm__("hlt");
 }
 
 void int_isr_err_stub(InterruptFrameWithError* frame, uint8_t code) {
@@ -244,22 +246,41 @@ void int_isr_err_stub(InterruptFrameWithError* frame, uint8_t code) {
     print_color_set(c);
 }
 
-/* Handle #GP, usually caused by corrupt descriptor tables and some other critical errors
- * Halts the system and displays debug info.
- */
-__attribute__((interrupt))
-void int_isr_fault_gp(InterruptFrameWithError* frame) {
-    int_disable();
+void int_isr_fault_common(InterruptFrame* frame, char* code) {
     print_color_set(0x4F);
     print_screen_fill(' ', 0x4F);
     print_cursor_set(2, 0);
-    print("#GP Occurred. Halting kernel.\n");
+    print(code);
+    print(" Occurred. Halting kernel.\n");
+    print_cursor_set (1, 0);
+
+    log_number_u("IP", frame->ip, 16);
+    log_number_u("CS", frame->cs, 16);
+    log_number_u("FLAGS", frame->flags, 16);
+}
+
+void int_isr_fault_common_err(InterruptFrameWithError* frame, char* code) {
+    print_color_set(0x4F);
+    print_screen_fill(' ', 0x4F);
+    print_cursor_set(2, 0);
+    print(code);
+    print(" Occurred. Halting kernel.\n");
     print_cursor_set (1, 0);
 
     log_number_u("Error Code", frame->error_code, 16);
     log_number_u("IP", frame->ip, 16);
     log_number_u("CS", frame->cs, 16);
     log_number_u("FLAGS", frame->flags, 16);
+}
+
+/* Handle #GP, usually caused by corrupt descriptor tables and some other critical errors
+ * Halts the system and displays debug info.
+ */
+__attribute__((interrupt))
+void int_isr_fault_gp(InterruptFrameWithError* frame) {
+    int_disable();
+
+    int_isr_fault_common_err(frame, "#GP");
 
     if (frame->error_code != 0) {
         uint16_t ext = frame->error_code & 0b1;
@@ -286,15 +307,7 @@ void int_isr_fault_gp(InterruptFrameWithError* frame) {
 __attribute__((interrupt))
 void int_isr_fault_df(InterruptFrameWithError* frame) {
     int_disable();
-    print_color_set(0x3F);
-    print_screen_fill(' ', 0x3F);
-    print_cursor_set(0, 0);
-    log_error("#DF Occurred. Halting kernel.\n");
-    log_number_u("Error Code (Should be 0)", frame->error_code, 16);
-    log_number_u("IP", frame->ip, 16);
-    log_number_u("CS", frame->cs, 16);
-    log_number_u("FLAGS", frame->flags, 16);
-
+    int_isr_fault_common_err(frame, "#DF");
     __asm__("hlt"); // Stop forever
 }
 
@@ -302,12 +315,13 @@ void int_isr_fault_df(InterruptFrameWithError* frame) {
 __attribute__((interrupt))
 void int_isr_fault_dbz(InterruptFrame* frame) {
     int_disable();
-    print_color_set(0x0C);
-    print_screen_fill(' ', 0x0C);
-    print_cursor_set(0, 0);
-    log_error("Divide by zero. Halting Kernel.\n");
-    log_number_u("IP", frame->ip, 16);
-    log_number_u("CS", frame->cs, 16);
-    log_number_u("FLAGS", frame->flags, 16);
+    int_isr_fault_common(frame, "#DBZ");
+    __asm__("hlt");
+}
+
+__attribute__((interrupt))
+void int_isr_fault_pf(InterruptFrameWithError* frame) {
+    int_disable();
+    int_isr_fault_common_err(frame, "#PF");
     __asm__("hlt");
 }

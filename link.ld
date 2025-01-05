@@ -1,7 +1,7 @@
 ENTRY(_start)
 
 MEMORY {
-    KERNEL (rx) : ORIGIN = 0x10000, LENGTH = 0xFFFF
+    KERNEL (rx) : ORIGIN = 0x100000, LENGTH = 0xFFFF
 }
 SECTIONS {
     .kernel : AT(0x0) {

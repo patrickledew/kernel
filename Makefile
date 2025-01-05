@@ -2,7 +2,7 @@ export SHELL := /bin/bash
 
 AS = nasm
 AFLAGS_16 = -f bin
-AFLAGS_32 = -f elf -g
+AFLAGS_32 = -f elf -F dwarf -g
 
 CC = gcc
 CFLAGS = -m32 -c -ffreestanding -mgeneral-regs-only -g -ggdb
@@ -44,7 +44,7 @@ $(TARGET): $(KERNEL) $(BOOTLOADER) copy-files
 
 # Building bootloader sector
 $(BOOTLOADER): $(BOOTSOURCE)
-	$(AS) $(AFLAGS_16) $< -o $@
+	$(AS) $(AFLAGS_16) $< -o $@ -l $<.lst
 
 $(BUILDDIR)/%.o: $(SOURCEDIR)/%.s
 	@mkdir -p $(@D)
@@ -55,6 +55,7 @@ $(BUILDDIR)/%.o: $(SOURCEDIR)/%.c
 
 $(KERNEL): $(OBJECTS)
 	@echo $(CC_SOURCES)
+	@echo $(AS_SOURCES)
 	@echo $(OBJECTS)
 	$(LD) $(LDARGS) -o $(BUILDDIR)/kernel.elf $(OBJECTS)
 	objcopy -O binary $(BUILDDIR)/kernel.elf $@

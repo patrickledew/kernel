@@ -16,7 +16,7 @@ _start:
     mov gs, ax
 
 setup_stack:
-    ; Locate stack at 0x5000
+    ; Locate stack at 0xFFFF
     mov esp, 0xFFFF ; Stack pointer
     mov ebp, 0xFFFF ; Base pointer
 call_main:
