@@ -1,4 +1,4 @@
-
+#include "fs.test.h"
 #include "core/fs/fs.h"
 #include "util/assert.h"
 #include "core/mem/memory.h"

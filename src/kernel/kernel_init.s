@@ -17,7 +17,7 @@ _start:
     mov fs, ax
     mov gs, ax
 
-setup_stack:
+setup_temp_stack:
     ; Locate stack at 0xFFFF
     mov esp, 0xFFFF ; Stack pointer
     mov ebp, 0xFFFF ; Base pointer
@@ -49,30 +49,34 @@ setup_paging:
     call fill_pt
 
     populate_kernel:
-    mov edi, page_table
+    mov edi, init_page_table
     mov eax, 0x100000 ; Start address of kernel in physical memory
     call fill_pt
     ;; Also map the last page to the VGA text mode buffer, so we can still write stuff to the screen
-    mov edi, page_table + 0xFFC
+    mov edi, init_page_table + 0xFFC
     mov [edi], dword 0xB8003
 
     populate_page_dir:
-    mov edi, page_directory
+    mov edi, init_page_directory
     mov eax, identity
     or eax, 3 ;; add permission bits
     mov [edi], eax
     ;; Next, we need to map the kernel (0x100000-0x500000) to 0xC0000000
     add edi, 0xC00 
-    mov eax, page_table
+    mov eax, init_page_table
     or eax, 3 ;; add permission bits
     mov [edi], eax
     
     enable_paging:
-        mov eax, page_directory
+        mov eax, init_page_directory
         mov cr3, eax
         mov eax, cr0            
         or eax, 0x80000000        ; Set PG bit in CR0
         mov cr0, eax
+setup_kernel_stack:
+    mov ebp, 0xc03f0000 ; Stack located at 0x4f0000 physical, 0xc03f00000 virtual
+    mov esp, ebp        ; this puts the stack high up in the kernel's reserved memory,
+                        ; so it can grow down as much as it needs to
     
 call_main:
     jmp kmain
@@ -80,11 +84,11 @@ call_main:
 align 4096
 
 _KERNEL_PAGE_DIRECTORY:
-page_directory:
+init_page_directory:
     resd 1024 ; 1024 32-bit entries
 
 _KERNEL_PAGE_TABLE:
-page_table:
+init_page_table:
     resd 1024
 
 identity:

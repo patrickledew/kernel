@@ -17,6 +17,7 @@ SECTIONS {
         *(.bss);
         *(.eh_frame);
         *(.got.plt);
+        . = ALIGN(4096);
          __KERNEL_END = .;
     }
 }

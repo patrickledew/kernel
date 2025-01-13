@@ -23,15 +23,22 @@ uint8_t* p_start; // start of allocatable region
 // This locates the bitmap at the end of the kernel address space.
 void mem_init(int pages)
 {
+    log_info("mem: initializing paged memory manager");
     num_pages = pages;
     pages_free = pages;
+
+    // Construct the bitmap starting at the end of the loaded kernel
     uint8_t* ptr = (uint8_t*)KERNEL_END;
     p_bitmap = ptr;
     while (ptr < KERNEL_END + pages / 8 + (pages % 8 == 0 ? 0 : 1)) {
         *ptr = 0x00;
         ptr++;
     }
-    p_start = ALLOC_REGION_START;
+    // p_start will be on the first page boundary after the bitmap
+    uint32_t ptr_u32 = (uint32_t)ptr;
+    p_start = (uint8_t*)(ptr_u32 % 0x1000 == 0 
+                        ? ptr_u32 
+                        : ptr_u32 + (0x1000 - ptr_u32 % 0x1000));
 
 }
 

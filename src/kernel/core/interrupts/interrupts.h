@@ -43,14 +43,6 @@ typedef struct {
     uint32_t flags;
 } __attribute__((__packed__)) InterruptFrame;
 
-typedef struct {
-    uint32_t error_code;
-    uint32_t ip;
-    uint32_t cs;
-    uint32_t flags;
-} __attribute__((__packed__)) InterruptFrameWithError;
-
-
 // General interrupt-related functions
 void int_start();
 void int_disable();
@@ -72,18 +64,18 @@ void    int_pic_mask_set(uint8_t pic, uint8_t mask);
 void int_isr_register(uint8_t index, uint32_t routine);
 
 // Stub ISRs
-void int_isr_stub(InterruptFrame* frame, uint8_t code);
-void int_isr_err_stub(InterruptFrameWithError* frame, uint8_t code);
+void int_isr_stub(InterruptFrame* frame, uint8_t irq);
+void int_isr_err_stub(InterruptFrame* frame, uint32_t error_code, uint8_t irq);
 
 // Common functionality between fault routines
-void int_isr_fault_common(InterruptFrame* frame, char* code);
-void int_isr_fault_common_err(InterruptFrameWithError* frame, char* code);
+void int_isr_fault_common(InterruptFrame* frame, char* label);
+void int_isr_fault_common_err(InterruptFrame* frame, uint32_t error_code, char* label);
 
 // ISRs to freeze the system when a GP, DF, or DZ is encountered
-void int_isr_fault_gp(InterruptFrameWithError* frame); // General Protection Fault
-void int_isr_fault_df(InterruptFrameWithError* frame); // Double Fault
+void int_isr_fault_gp(InterruptFrame* frame, uint32_t error_code); // General Protection Fault
+void int_isr_fault_df(InterruptFrame* frame, uint32_t error_code); // Double Fault
 void int_isr_fault_dbz(InterruptFrame* frame); // Divide by Zero
-void int_isr_fault_pf(InterruptFrameWithError* frame); // Page Fault
+void int_isr_fault_pf(InterruptFrame* frame, uint32_t error_code); // Page Fault
 
 // Macros for registering ISRs
 #define ADD_ISR(i, isr) int_isr_register(i, (uint32_t)isr)
@@ -110,8 +102,8 @@ void int_isr_fault_pf(InterruptFrameWithError* frame); // Page Fault
 
 #define DEF_ISR_ERR_STUB(i) \
     __attribute__((interrupt))\
-    void isr_err_stub_##i(InterruptFrameWithError* frame) {\
-        int_isr_err_stub(frame, i);\
+    void isr_err_stub_##i(InterruptFrame* frame, uint32_t error_code) {\
+        int_isr_err_stub(frame, error_code, i);\
     }
 
 #define DEF_ISR_STUB_IRQ(i) \

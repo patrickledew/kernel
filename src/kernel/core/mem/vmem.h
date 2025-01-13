@@ -13,8 +13,16 @@
 #define PAGE_ENTRY_MASK_PAGESIZE    0b000100000000 // Enable 4MiB paging if set
 #define PAGE_ENTRY_MASK_UNUSED      0b111001000000 // Unused bits
 
-extern uint32_t _KERNEL_PAGE_DIRECTORY[1024];
-extern uint32_t _KERNEL_PAGE_TABLE[1024];
+#define PAGE_SIZE 0x1000
+#define PAGE_TABLE_ENTRIES 0x400
+
+
+// Conversions from a variable address (in kernel space) to a physical address and back
+#define KADDR_TO_PADDR(kaddr) ((uint32_t)(kaddr) - 0xC0000000 + 0x100000)
+#define PADDR_TO_KADDR(paddr) ((uint32_t)(paddr) + 0xC0000000 - 0x100000)
+
+extern uint32_t _KERNEL_PAGE_DIRECTORY[PAGE_TABLE_ENTRIES]; // each entry corresponds to 0x400 pages
+extern uint32_t _KERNEL_PAGE_TABLE[PAGE_TABLE_ENTRIES]; // each entry corresponds to 1 page (0x1000 bytes)
 
 
 void vmem_init();
@@ -22,7 +30,11 @@ void vmem_load(uint32_t* page_directory);
 void vmem_load_absolute(uint32_t* page_directory);
 void vmem_zap_identity(); // Zaps the identity page table, which we will no longer use
 
+uint32_t* vmem_pd_create();
+void vmem_pd_destroy();
+
 // Map a virtual address to a physical address
-void vmem_map(uint32_t* page_directory, uint8_t* v_addr, uint8_t* p_addr, uint32_t size);
+int vmem_map(uint32_t* page_directory, uint8_t* p_addr, uint8_t* v_addr, uint32_t size, uint16_t flags);
+int vmem_unmap(uint32_t* page_directory, uint8_t* v_addr, uint32_t num_pages);
 
 #endif

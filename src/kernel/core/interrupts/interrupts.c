@@ -224,10 +224,10 @@ void int_pic_send_eoi() {
 // with the DEF_ISR_STUB and DEF_ISR_ERR_STUB macros.
 // 
 // This allows us to see exactly what the interrupt code is for each unhandled interrupt.
-void int_isr_stub(InterruptFrame* frame, uint8_t code) {
+void int_isr_stub(InterruptFrame* frame, uint8_t irq) {
     uint8_t c = print_color_get();
     print_color_set(0x0D);
-    log_number_u("Unhandled interrupt", code, 16);
+    log_number_u("Unhandled interrupt", irq, 16);
     log_number_u("IP", frame->ip, 16);
     log_number_u("CS", frame->cs, 16);
     log_number_u("FLAGS", frame->flags, 16);
@@ -236,39 +236,39 @@ void int_isr_stub(InterruptFrame* frame, uint8_t code) {
     __asm__("hlt");
 }
 
-void int_isr_err_stub(InterruptFrameWithError* frame, uint8_t code) {
+void int_isr_err_stub(InterruptFrame* frame, uint32_t error_code, uint8_t irq) {
     uint8_t c = print_color_get();
     print_color_set(0x0D);
-    log_number_u("Unhandled interrupt", code, 16);
-    log_number_u("Error code", frame->error_code, 16);
+    log_number_u("Unhandled interrupt", irq, 16);
+    log_number_u("Error code", error_code, 16);
     log_number_u("IP", frame->ip, 16);
     log_number_u("CS", frame->cs, 16);
     log_number_u("FLAGS", frame->flags, 16);
     print_color_set(c);
 }
 
-void int_isr_fault_common(InterruptFrame* frame, char* code) {
+void int_isr_fault_common(InterruptFrame* frame, char* label) {
     print_color_set(0x4F);
     print_screen_fill(' ', 0x4F);
-    print_cursor_set(2, 0);
-    print(code);
+    print_cursor_set(0, 0);
+    print(label);
     print(" Occurred. Halting kernel.\n");
-    print_cursor_set (1, 0);
+    print_cursor_set (2, 0);
 
     log_number_u("IP", frame->ip, 16);
     log_number_u("CS", frame->cs, 16);
     log_number_u("FLAGS", frame->flags, 16);
 }
 
-void int_isr_fault_common_err(InterruptFrameWithError* frame, char* code) {
+void int_isr_fault_common_err(InterruptFrame* frame, uint32_t error_code, char* label) {
     print_color_set(0x4F);
     print_screen_fill(' ', 0x4F);
-    print_cursor_set(2, 0);
-    print(code);
+    print_cursor_set(0, 0);
+    print(label);
     print(" Occurred. Halting kernel.\n");
-    print_cursor_set (1, 0);
+    print_cursor_set (2, 0);
 
-    log_number_u("Error Code", frame->error_code, 16);
+    log_number_u("Error Code", error_code, 16);
     log_number_u("IP", frame->ip, 16);
     log_number_u("CS", frame->cs, 16);
     log_number_u("FLAGS", frame->flags, 16);
@@ -278,15 +278,15 @@ void int_isr_fault_common_err(InterruptFrameWithError* frame, char* code) {
  * Halts the system and displays debug info.
  */
 __attribute__((interrupt))
-void int_isr_fault_gp(InterruptFrameWithError* frame) {
+void int_isr_fault_gp(InterruptFrame* frame, uint32_t error_code) {
     int_disable();
 
-    int_isr_fault_common_err(frame, "#GP");
+    int_isr_fault_common_err(frame, error_code, "#GP");
 
-    if (frame->error_code != 0) {
-        uint16_t ext = frame->error_code & 0b1;
-        uint16_t table = (frame->error_code & 0b110) >> 1;
-        uint16_t index = (frame->error_code & 0xFFF4) >> 3;
+    if (error_code != 0) {
+        uint16_t ext = error_code & 0b1;
+        uint16_t table = (error_code & 0b110) >> 1;
+        uint16_t index = (error_code & 0xFFF4) >> 3;
 
         println("#GP segmentation related.");
         print("External: ");
@@ -306,9 +306,9 @@ void int_isr_fault_gp(InterruptFrameWithError* frame) {
 
 /* Also handle double faults by freezing the system. */
 __attribute__((interrupt))
-void int_isr_fault_df(InterruptFrameWithError* frame) {
+void int_isr_fault_df(InterruptFrame* frame, uint32_t error_code) {
     int_disable();
-    int_isr_fault_common_err(frame, "#DF");
+    int_isr_fault_common_err(frame, error_code, "#DF");
     __asm__("hlt"); // Stop forever
 }
 
@@ -321,8 +321,8 @@ void int_isr_fault_dbz(InterruptFrame* frame) {
 }
 
 __attribute__((interrupt))
-void int_isr_fault_pf(InterruptFrameWithError* frame) {
+void int_isr_fault_pf(InterruptFrame* frame, uint32_t error_code) {
     int_disable();
-    int_isr_fault_common_err(frame, "#PF");
+    int_isr_fault_common_err(frame, error_code, "#PF");
     __asm__("hlt");
 }

@@ -12,6 +12,8 @@
 #include "util/assert.h"
 #include "test/fs.test.h"
 #include "core/mem/vmem.h"
+#include "core/gdt/gdt.h"
+#include "test/vmem.test.h"
 
 int uptime = 0;
 
@@ -37,11 +39,13 @@ void print_kernel_addr() {
 
 void kmain() {
     print_kernel_addr();
+
+    gdt_init();
+
+    /** Finish setting up paging */
     vmem_init();
 
-    // TODO: Zap first page directory entry
-
-    /** Start physical memory manager */
+    /** Start page-size memory manager */
     mem_init(0x1000);
 
     /** Initialize interrupts, then initialize everything that registers an interrupt handler */
@@ -52,20 +56,21 @@ void kmain() {
     timer_interval_set(10, print_cursor_refresh);
 
     keyboard_init(); // Initialize keyboard driver
-    disk_init(); // Initialize ATA disk driver
+    // disk_init(); // Initialize ATA disk driver
 
     // Once all ISRs are registered, enable interrupts
     int_start();
 
     /** Initialize the filesystem driver to read in our filesystem */
-    fat_init();
+    // fat_init();
 
     /**
      * -=-=-=-=-=-=-=-=-=-=-=-=-=-=-
      * Extra space to do other stuff.
      * -=-=-=-=-=-=-=-=-=-=-=-=-=-=-
      */
-    fs_test();
+    // fs_test();
+    vmem_test();
 
     /**
      * -=-=-=-=-=-=-=-=-=-=-=-=-=-=-
