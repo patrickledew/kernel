@@ -1,19 +1,23 @@
-// C Entry point for kernel. Invoked from kernel_init.s.
-#include "core/interrupts/interrupts.h"
+#include "core/mem/vmem.h"
+#include "core/mem/alloc.h"
 #include "core/mem/memory.h"
-#include "util/logging.h"
-#include "util/keyboard.h"
-#include "util/timer.h"
+#include "core/interrupts/interrupts.h"
 #include "core/vga/vga.h"
 #include "core/disk/disk.h"
 #include "core/fs/fat/fat12.h"
 #include "core/fs/fs.h"
-#include "util/strutil.h"
-#include "util/assert.h"
-#include "test/fs.test.h"
-#include "core/mem/vmem.h"
 #include "core/gdt/gdt.h"
+#include "core/proc/loader.h"
+
+#include "util/timer.h"
+#include "util/assert.h"
+#include "util/logging.h"
+#include "util/keyboard.h"
+#include "util/strutil.h"
+
+#include "test/fs.test.h"
 #include "test/vmem.test.h"
+#include "test/elf.test.h"
 
 int uptime = 0;
 
@@ -37,6 +41,7 @@ void print_kernel_addr() {
     print_color_set(c);
 }
 
+// C entry point for kernel. Invoked from kernel_init.s.
 void kmain() {
     print_kernel_addr();
 
@@ -46,7 +51,7 @@ void kmain() {
     vmem_init();
 
     /** Start page-size memory manager */
-    mem_init(0x1000);
+    alloc_init(0x1000);
 
     /** Initialize interrupts, then initialize everything that registers an interrupt handler */
     int_init(); // Initialize interrupt descriptor table (IDT)
@@ -56,13 +61,13 @@ void kmain() {
     timer_interval_set(10, print_cursor_refresh);
 
     keyboard_init(); // Initialize keyboard driver
-    // disk_init(); // Initialize ATA disk driver
+    disk_init(); // Initialize ATA disk driver
 
     // Once all ISRs are registered, enable interrupts
     int_start();
 
     /** Initialize the filesystem driver to read in our filesystem */
-    // fat_init();
+    fat_init();
 
     /**
      * -=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -70,7 +75,9 @@ void kmain() {
      * -=-=-=-=-=-=-=-=-=-=-=-=-=-=-
      */
     // fs_test();
-    vmem_test();
+    // vmem_test();
+    // elf_test();
+    loader_test("/HELLO.ELF");
 
     /**
      * -=-=-=-=-=-=-=-=-=-=-=-=-=-=-

@@ -144,9 +144,9 @@ void int_start() {
     int_enable();
 }
 
-void int_isr_register(uint8_t index, uint32_t routine) {
-    _idt[index].offset_1 = (uint16_t)(routine & 0xFFFF);
-    _idt[index].offset_2 = (uint16_t)(routine >> 16);
+void int_isr_register(uint8_t index, void* routine) {
+    _idt[index].offset_1 = (uint16_t)((uint32_t)routine & 0xFFFF);
+    _idt[index].offset_2 = (uint16_t)((uint32_t)routine >> 16);
     _idt[index].selector = 0x08 // Segment selector 0x08
                          | 0b0 << 2 // TI = GDT (0)
                          | 0b0; // RPL = 0

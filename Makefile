@@ -2,7 +2,7 @@ export SHELL := /bin/bash
 
 AS = nasm
 AFLAGS_16 = -f bin
-AFLAGS_32 = -f elf -F dwarf -g
+AFLAGS_32 = -f elf32 -F dwarf -g
 
 CC = gcc
 CFLAGS = -m32 -c -ffreestanding -mgeneral-regs-only -g -ggdb
@@ -33,6 +33,9 @@ AS_SOURCES := $(shell find $(SOURCEDIR) -name '*.s')
 OBJECTS := $(patsubst $(SOURCEDIR)/%.c, $(BUILDDIR)/%.o, $(CC_SOURCES))
 OBJECTS += $(patsubst $(SOURCEDIR)/%.s, $(BUILDDIR)/%.o, $(AS_SOURCES))
 
+HOSTED_DIR := src/programs
+HOSTED_BIN := $(HOSTED_DIR)/bin
+
 .PHONY: copy-files
 
 all: $(TARGET)
@@ -61,9 +64,10 @@ $(KERNEL): $(OBJECTS)
 	objcopy -O binary $(BUILDDIR)/kernel.elf $@
 
 
-copy-files: $(FILESYSTEM)
+copy-files: $(FILESYSTEM) programs
 	@echo copying files...
 	cp -r $(FSINITDIR)/* $(FSMOUNTDIR)
+	cp -r $(HOSTED_BIN)/* $(FSMOUNTDIR)
 	sudo sync -f $(FSMOUNTDIR)/*
 	ls $(FSMOUNTDIR)
 
@@ -86,3 +90,6 @@ fs-clean:
 
 clean: fs-clean
 	@-rm -r $(BUILDDIR)/*
+
+programs:
+	@make -C $(HOSTED_DIR)

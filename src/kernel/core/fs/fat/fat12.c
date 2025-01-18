@@ -2,6 +2,7 @@
 #include "types.h"
 #include "core/disk/disk.h"
 #include "util/logging.h"
+#include "core/mem/alloc.h"
 #include "core/mem/memory.h"
 #include "util/assert.h"
 BiosParameterBlock bpb;

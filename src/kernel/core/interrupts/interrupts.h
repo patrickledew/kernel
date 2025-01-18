@@ -61,7 +61,7 @@ void    int_pic_mask_set(uint8_t pic, uint8_t mask);
 // Functions related to ISRs
 
 // Register an ISR
-void int_isr_register(uint8_t index, uint32_t routine);
+void int_isr_register(uint8_t index, void* routine);
 
 // Stub ISRs
 void int_isr_stub(InterruptFrame* frame, uint8_t irq);
@@ -78,7 +78,7 @@ void int_isr_fault_dbz(InterruptFrame* frame); // Divide by Zero
 void int_isr_fault_pf(InterruptFrame* frame, uint32_t error_code); // Page Fault
 
 // Macros for registering ISRs
-#define ADD_ISR(i, isr) int_isr_register(i, (uint32_t)isr)
+#define ADD_ISR(i, isr) int_isr_register(i, isr)
 
 // Note: ADD_ISR_STUB and ADD_ISR_ERR_STUB require using a corresponding
 //       DEF_ISR_STUB or DEF_ISR_ERR_STUB.

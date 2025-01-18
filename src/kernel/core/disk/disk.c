@@ -1,7 +1,7 @@
 #include "disk.h"
 #include "core/portio/portio.h"
 #include "util/logging.h"
-#include "core/mem/memory.h"
+#include "core/mem/alloc.h"
 #include "util/assert.h"
 // This file contains an implementation for interfacing with ATA hard drives directly, through port IO.
 // Note: this method is inherently slow and there exist other (much faster) solutions, namely DMA.
@@ -35,7 +35,7 @@ bool disk_detect_floating() {
 
 void disk_init() {
     log_info("disk_init: initializing ATA disk driver.");
-    int_isr_register(ATA_PRIMARY_IRQ, (uint32_t)disk_irq);
+    int_isr_register(ATA_PRIMARY_IRQ, disk_irq);
 
     if (disk_detect_floating()) {
         log_error("disk_init: err: no drives connected.");

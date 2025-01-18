@@ -1,7 +1,7 @@
 #include "fs.h"
 #include "util/strutil.h"
 #include "util/logging.h"
-#include "core/mem/memory.h"
+#include "core/mem/alloc.h"
 
 FileDescriptor fd_table[MAX_OPEN_FILES];
 
@@ -105,7 +105,7 @@ int close(int fd) {
     FileDescriptor* file = &fd_table[fd];
     if (!file->used) return -1;
     file->used = FALSE;
-    free(file->parent_directory.entries);
+    free((uint8_t*)file->parent_directory.entries);
     // Free entries pointed to by parent directory
     return 0;
 }
@@ -170,4 +170,13 @@ int tell(int fd) {
     if (!file->used) return -1;
     
     return file->position;
+}
+
+int fsize(int fd) {
+    if (fd < 0 || fd >= MAX_OPEN_FILES) return -1;
+
+    FileDescriptor* file = &fd_table[fd];
+    if (!file->used) return -1;
+
+    return file->file->file_size;
 }

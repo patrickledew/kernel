@@ -2,6 +2,7 @@
 #include "vmem.test.h"
 #include "core/interrupts/interrupts.h"
 #include "core/mem/vmem.h"
+#include "core/mem/alloc.h"
 #include "core/mem/memory.h"
 #include "util/assert.h"
 #include "util/logging.h"
@@ -40,9 +41,9 @@ void vmem_test() {
     pd = vmem_pd_create();
 
     // 1) Map two virtual addresses to the same physical address.
-    uint8_t* phys = 0x10000;
-    uint32_t* virt_a = 0x12345000;
-    uint32_t* virt_b = 0xfefef000;
+    uint8_t* phys = (uint8_t*)0x10000;
+    uint32_t* virt_a = (uint32_t*)0x12345000;
+    uint32_t* virt_b = (uint32_t*)0xfefef000;
 
     assert_i(vmem_map(pd, phys, (uint8_t*)virt_a, 2, PAGE_ENTRY_MASK_READWRITE), 0);
     assert_i(vmem_map(pd, phys, (uint8_t*)virt_b, 3, PAGE_ENTRY_MASK_READWRITE), 0);
@@ -52,7 +53,6 @@ void vmem_test() {
     // fill a page with 1,2,3,4... and check that the other address has same data
     for (uint32_t i = 0; i < 1024; i++) {
         virt_a[i] = i;
-
         assert_u32(virt_b[i], i);
     }
 
@@ -65,7 +65,11 @@ void vmem_test() {
     // B
     i = virt_b[off];
     assert_no_page_fault();
-    // 3
+
+    // 3) Unmap A, assert that accessing A causes page fault
+    vmem_unmap(pd, (uint8_t*)virt_a, 2);
+    i = virt_a[0];
+    assert_page_fault();
 
     vmem_pd_destroy(pd);
 

@@ -10,7 +10,11 @@
         "portio.h": "c",
         "timer.h": "c",
         "strutil.h": "c",
-        "vmem.h": "c"
+        "vmem.h": "c",
+        "fs.h": "c",
+        "loader.h": "c",
+        "assert.h": "c",
+        "proc.h": "c"
     },
     "debug.onTaskErrors": "debugAnyway"
 }

@@ -1,6 +1,7 @@
 #include "fs.test.h"
 #include "core/fs/fs.h"
 #include "util/assert.h"
+#include "core/mem/alloc.h"
 #include "core/mem/memory.h"
 #include "util/strutil.h"
 #include "util/logging.h"

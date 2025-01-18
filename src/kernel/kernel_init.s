@@ -1,5 +1,5 @@
-section .kernel_init
 [bits 32] ; this is code running after our switch to protected mode
+section .kernel_init
 
 global _start
 global _KERNEL_PAGE_DIRECTORY
@@ -81,15 +81,16 @@ setup_kernel_stack:
 call_main:
     jmp kmain
 
+;; Allocate space for page directory and page tables. Kernel page table will be reused.
 align 4096
 
 _KERNEL_PAGE_DIRECTORY:
 init_page_directory:
-    resd 1024 ; 1024 32-bit entries
+    times 1024 dd 0 ; 1024 32-bit entries
 
 _KERNEL_PAGE_TABLE:
 init_page_table:
-    resd 1024
+    times 1024 dd 0
 
 identity:
-    resd 1024
+    times 1024 dd 0

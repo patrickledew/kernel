@@ -1,5 +1,6 @@
 #include "vmem.h"
-#include "memory.h"
+#include "core/mem/alloc.h"
+#include "core/mem/memory.h"
 #include "util/logging.h"
 #include "util/assert.h"
 
@@ -37,8 +38,8 @@ uint32_t* vmem_pd_create() {
         uint32_t* page_directory = (uint32_t*)alloc(PAGE_TABLE_ENTRIES * 4);
         memfill((uint8_t*)page_directory, 4096, 0);
         // Use existing kernel page table
-        uint32_t kernel_pt_paddr = KADDR_TO_PADDR(kernel_page_table);
-        page_directory[0x300] = kernel_pt_paddr | PAGE_ENTRY_MASK_PRESENT | PAGE_ENTRY_MASK_READWRITE ;
+        uint8_t* kernel_pt_paddr = KADDR_TO_PADDR(kernel_page_table);
+        page_directory[0x300] = (uint32_t)kernel_pt_paddr | PAGE_ENTRY_MASK_PRESENT | PAGE_ENTRY_MASK_READWRITE ;
 
         return page_directory;
 }
@@ -75,8 +76,7 @@ int vmem_map(uint32_t* page_directory, uint8_t* p_addr, uint8_t* v_addr, uint32_
             // Must be on page boundary
             assert_u32(0, (uint32_t)page_table % 0x1000);
             // Update page table directory entry
-            page_directory[pd_idx] = KADDR_TO_PADDR(page_table);
-            page_directory[pd_idx] |= PAGE_ENTRY_MASK_PRESENT | PAGE_ENTRY_MASK_READWRITE; // TODO logic around flags for page dir entry
+            page_directory[pd_idx] = (uint32_t)KADDR_TO_PADDR(page_table) | PAGE_ENTRY_MASK_PRESENT | PAGE_ENTRY_MASK_READWRITE;
         }
         // Populate page table entry
         page_table[pt_idx] = p_addr_aligned | PAGE_ENTRY_MASK_PRESENT | PAGE_ENTRY_MASK_READWRITE | flags;
@@ -95,7 +95,7 @@ int vmem_unmap(uint32_t* page_directory, uint8_t* v_addr, uint32_t num_pages) {
         uint32_t pd_idx = (v_addr_aligned / PAGE_SIZE + i) / PAGE_TABLE_ENTRIES;
         uint32_t pt_idx = (v_addr_aligned / PAGE_SIZE + i) % PAGE_TABLE_ENTRIES;
         if (page_directory[pd_idx] & PAGE_ENTRY_MASK_PRESENT) {
-            uint32_t* page_table = PADDR_TO_KADDR(page_directory[pd_idx] & 0xFFFFF000);
+            uint32_t* page_table = (uint32_t*)PADDR_TO_KADDR(page_directory[pd_idx] & 0xFFFFF000);
             if (page_table[pt_idx] & PAGE_ENTRY_MASK_PRESENT) {
                 page_table[pt_idx] = 0;
             } else {
@@ -112,7 +112,7 @@ int vmem_unmap(uint32_t* page_directory, uint8_t* v_addr, uint32_t num_pages) {
             }
 
             if (pt_is_empty) {
-                free(page_table);
+                free((uint8_t*)page_table);
                 page_directory[pd_idx] = 0; // Remove from page directory
             }
 
@@ -120,4 +120,5 @@ int vmem_unmap(uint32_t* page_directory, uint8_t* v_addr, uint32_t num_pages) {
             return -1; // Page table not setup
         }
     }
+    return 0;
 }

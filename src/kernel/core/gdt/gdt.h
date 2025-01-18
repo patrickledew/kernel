@@ -14,7 +14,7 @@ typedef struct {
 
 typedef struct {
     uint16_t size;
-    uint32_t* offset;
+    gdt_segment_descriptor* offset;
 } __attribute__((packed)) gdt_descriptor;
 
 void gdt_init();

@@ -1,5 +1,4 @@
 #include "strutil.h"
-#include "core/mem/memory.h"
 
 uint32_t strlen(char* str) {
     int i = 0;
