@@ -8,6 +8,7 @@
 #include "core/fs/fs.h"
 #include "core/gdt/gdt.h"
 #include "core/proc/loader.h"
+#include "core/interrupts/syscall.h"
 
 #include "util/timer.h"
 #include "util/assert.h"
@@ -33,7 +34,7 @@ void print_kernel_addr() {
     print_screen_fill(' ', 0x0F);
     uint8_t c = print_color_get();
     print_color_set(0x0A);
-    print("kmain: kernel loaded at virtual address: 0x");
+    print("kmain: kernel virt addr: 0x");
     print_num_u((uint32_t)KERNEL_BEGIN, 16);
     print("-0x");
     print_num_u((uint32_t)KERNEL_END, 16);
@@ -62,7 +63,7 @@ void kmain() {
 
     keyboard_init(); // Initialize keyboard driver
     disk_init(); // Initialize ATA disk driver
-
+    syscall_init();
     // Once all ISRs are registered, enable interrupts
     int_start();
 

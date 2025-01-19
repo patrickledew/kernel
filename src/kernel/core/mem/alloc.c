@@ -90,10 +90,6 @@ uint8_t* alloc(uint32_t size) {
 
         pages_free -= 1;
     }
-
-    log_number_u("mem: allocated from ", p_start + start_page * PAGE_SIZE, 16);
-    log_number_u("mem: to", p_start + (start_page + pages_required) * PAGE_SIZE, 16);
-
     return p_start + start_page * PAGE_SIZE;   
 }
 
@@ -105,8 +101,6 @@ uint32_t free(uint8_t* addr) {
 
     // Calculate start page index
     uint32_t start_page = (addr - p_start) / PAGE_SIZE;
-
-    log_number_u("mem: dealloc starting from ", p_start + start_page * PAGE_SIZE, 16);
 
     for (uint32_t i = start_page; i < num_pages; i++) {
         uint32_t byte_idx = (i * 2) / 8;
