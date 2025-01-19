@@ -18,7 +18,7 @@ void timer_init(uint16_t freq) {
     outb(PIT_PORT_COUNT0, ((initial_count >> 8) & 0xFF)); // Load MSB
 
     // Now register the ISR for the timer IRQ
-    ADD_ISR(0x20, timer_isr); // Initialize keyboard IRQ
+    REG_ISR(0x20, timer_isr); // Initialize keyboard IRQ
 }
 
 __attribute__((interrupt))

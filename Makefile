@@ -40,9 +40,12 @@ HOSTED_BIN := $(HOSTED_DIR)/bin
 
 all: $(TARGET)
 
+
+# Reserved space for boot sector/kernel = 0x20200
+# everything after that is reserved for the filesystem
 $(TARGET): $(KERNEL) $(BOOTLOADER) copy-files
 	cat $(BOOTLOADER) $(KERNEL) >> $@
-	truncate -s 66048 $@
+	truncate -s 131584 $@
 	cat $(FILESYSTEM) >> $@
 
 # Building bootloader sector

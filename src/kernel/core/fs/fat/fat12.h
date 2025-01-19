@@ -17,8 +17,8 @@
  * - Organize this into separate interface and implementation files
  */
 
-#define FS_START 0x10200 // Filesystem starts in next sector after kernel image
-#define FS_END 0x110600
+#define FS_START 0x20200 // Filesystem starts in next sector after kernel image
+#define FS_END 0x120600
 #define FS_START_SECTOR (FS_START / 512)
 #define FS_END_SECTOR (FS_END / 512)
 

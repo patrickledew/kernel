@@ -14,7 +14,8 @@
         "fs.h": "c",
         "loader.h": "c",
         "assert.h": "c",
-        "proc.h": "c"
+        "proc.h": "c",
+        "int_stubs.h": "c"
     },
     "debug.onTaskErrors": "debugAnyway"
 }

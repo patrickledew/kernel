@@ -33,7 +33,7 @@ void print_kernel_addr() {
     print_screen_fill(' ', 0x0F);
     uint8_t c = print_color_get();
     print_color_set(0x0A);
-    print("kmain: kernel mapped to 0x");
+    print("kmain: kernel loaded at virtual address: 0x");
     print_num_u((uint32_t)KERNEL_BEGIN, 16);
     print("-0x");
     print_num_u((uint32_t)KERNEL_END, 16);

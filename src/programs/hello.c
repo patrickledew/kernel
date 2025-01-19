@@ -1,4 +1,6 @@
-int main() {
-    __asm__ volatile("int $0x00"); // Divide by zero interrupt - should let us know we're executing this code!
-    return 0;
+
+char* hello = "Hello from inside a process!";
+
+void main() {
+    __asm__ ("mov $0x00, %%eax; mov %0, %%esi; int $0x80" :: "r"(hello) : "eax", "esi");
 }

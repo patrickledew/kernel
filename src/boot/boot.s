@@ -11,17 +11,29 @@ load_kernel:
 
     ; kernel should be on disk immediately after this boot sector, from 0x200 onwards
     ; we want to load this to memory address 0x10000
-    mov ah, 02h ; read sectors from drive - apparently 42h has more functionality
-    mov al, 0x80 ; Copy up to 128 sectors (0x10000 bytes)
-    mov ch, 0 ; Cylinder 0
-    mov cl, 2 ; 2nd sector, containing kernel
-    mov dh, 0 ; Head 0
-    mov dl, 0x80 ; Drive 0x80 (first hard drive)
-    ; load to 0x10000
-    mov bx, 0x1000
-    mov es, bx 
+    
+    load_chunk:
+    mov ah, 42h ; Extended Read Sectors from Drive
+    mov dl, 80h ; Load from first hard disk
     xor bx, bx
+    ; specify ds:si for DAP
+    mov ds, cx
+    mov si, disk_dap
     int 13h
+    jc disk_err
+    mov ax, [disk_dap_segment]
+    mov bx, [disk_dap_lba]
+    add ax, 0x1000 ; We should load 0x10000 bytes higher in memory
+    add bx, 0x80 ; 0x80 sectors
+    mov [disk_dap_segment], ax
+    mov [disk_dap_lba], bx
+    sub ax, 0x2000 ; If segment > 0x2000, stop
+    jl load_kernel_done
+    jmp load_chunk
+    load_kernel_done:
+
+    mov di, string_disk_success
+    call print_str
 
 setup_gdt:
     mov di, string_setup_gdt
@@ -49,12 +61,11 @@ set_protected_mode:
     jmp 0x08:move_kernel
 
 [bits 32]
-;; Now kernel is loaded at 0x10000-0x14000, we want to copy it to 0x100000
-;; need to move 0x4000 bytes
+;; Now kernel is loaded at 0x10000-0x30000, we want to copy it to 0x100000
 move_kernel:
     mov esi, 0x10000
     mov edi, 0x100000
-    mov ecx, 0x4000 ; 0x4000 double words = 0x10000 bytes
+    mov ecx, 0x8000 ; 0x8000 double words = 0x20000 bytes
     mov ax, 0x10
     mov es, ax
     mov ds, ax
@@ -63,6 +74,13 @@ move_kernel:
 ; Now we finally jump to the kernel_init code!
 jump_kernel:
     jmp 0x100000 ; Jump using first GDT segment (offset 0x08), which is the kernel
+
+
+disk_err:
+    mov di, string_disk_error
+    call print_str
+disk_err_trap:
+    jmp disk_err_trap
 
 
 [bits 16]
@@ -130,8 +148,18 @@ print_str:
         pop ax
         ret
 
-;; GDT Info
+;; DAP for reading in kernel
+disk_dap:
+    db 0x10 ; size of DAP
+    db 0x00 ; reserved
+    dw 0x0080 ; number of sectors to read (512 bytes * 0x80 = 0x10000 bytes)
+    dw 0x0000 ; offset in segment to read to
+disk_dap_segment:
+    dw 0x1000 ; segment to read to (seg 0x1000 = byte 0x10000)
+disk_dap_lba:
+    dq 0x0000000000000001 ; LBA of kernel on disk (second sector)
 
+;; GDT Info
 gdtr:
     dw 0 ; limit of GDT record
     dd 0 ; base of GDT record
@@ -146,43 +174,47 @@ string_setup_gdt:
     dw `Setting up GDT...\n`, 0
 string_protected_mode:
     dw `Turning on protected mode and jumping to kernel...\n`, 0
+string_disk_error:
+    dw `Error reading kernel from disk.\n`, 0
+string_disk_success:
+    dw `Read kernel from disk successfully.\n`, 0
 
-times (0x1B8 - ($ - $$)) nop
-    dd 0x42424242 ;; Disk signature
-    dw 0x0000
-times (0x1BE - ($ - $$)) nop
-partition_entry_1: ;; KERNEL IMAGE PARTITION
-    db 0x80 ; Primary disk
+; times (0x1B8 - ($ - $$)) nop
+;     dd 0x42424242 ;; Disk signature
+;     dw 0x0000
+; times (0x1BE - ($ - $$)) nop
+; partition_entry_1: ;; KERNEL IMAGE PARTITION
+;     db 0x80 ; Primary disk
     
-    ;; Start of partition
-    db 0x00 ; Head 0
-    db 0b00000010 ; Sector 2 (1-indexed)
-    db 0x00 ; Cylinder 0
-    db 0x7F ; partition type (must be non-zero)
+;     ;; Start of partition
+;     db 0x00 ; Head 0
+;     db 0b00000010 ; Sector 2 (1-indexed)
+;     db 0x00 ; Cylinder 0
+;     db 0x7F ; partition type (must be non-zero)
     
-    ;; End of partition    
-    ;; We copied 0x80 sectors, so 0x81 is the last sector
-    db 0x02 ; Head 2
-    db 0x03 ; Sector 3 (1-indexed)
-    db 0x00 ; Cylinder 0
+;     ;; End of partition    
+;     ;; We copied 0x80 sectors, so 0x81 is the last sector
+;     db 0x02 ; Head 2
+;     db 0x03 ; Sector 3 (1-indexed)
+;     db 0x00 ; Cylinder 0
 
-    dd 0x01  ; LBA of start of partition (Sector 1, zero indexed)
-    dd 0x80  ; Sectors in partition
-partition_entry_2: ;; RESERVED FOR FILESYSTEM EXPERIMENTATION
-    db 0x80 ; Primary disk
+;     dd 0x01  ; LBA of start of partition (Sector 1, zero indexed)
+;     dd 0x80  ; Sectors in partition
+; partition_entry_2: ;; RESERVED FOR FILESYSTEM EXPERIMENTATION
+;     db 0x80 ; Primary disk
 
-    ;; Start of partition - LBA 0x81
-    db 0x02 ; Head 2
-    db 0x04 ; Sector 4 (1-indexed)
-    db 0x00 ; Cylinder 0
-    db 0x01 ; partition type (FAT12)
+;     ;; Start of partition - LBA 0x81
+;     db 0x02 ; Head 2
+;     db 0x04 ; Sector 4 (1-indexed)
+;     db 0x00 ; Cylinder 0
+;     db 0x01 ; partition type (FAT12)
     
-    ;; End of partition - LBA 0x882    
-    db 0x02 ; Head 2
-    db 0x25 ; Sector 37 (1-indexed)
-    db 0x02 ; Cylinder 2
-    dd 0x81  ; LBA of start of partition (Sector 1, zero indexed)
-    dd 0x800  ; Sectors in partition
+;     ;; End of partition - LBA 0x882    
+;     db 0x02 ; Head 2
+;     db 0x25 ; Sector 37 (1-indexed)
+;     db 0x02 ; Cylinder 2
+;     dd 0x81  ; LBA of start of partition (Sector 1, zero indexed)
+;     dd 0x800  ; Sectors in partition
     
 times (0x1FE - ($ - $$)) db 0x00 ;; pad for boot signature
 bootsig:

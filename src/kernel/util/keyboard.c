@@ -7,7 +7,7 @@
 
 void keyboard_init() {
     log_info("keyboard_init: initializing keyboard driver.");
-    ADD_ISR(0x21, keyboard_isr); // Initialize keyboard IRQ
+    REG_ISR(0x21, keyboard_isr); // Initialize keyboard IRQ
 }
 
 __attribute__((interrupt))

@@ -61,7 +61,7 @@ void    int_pic_mask_set(uint8_t pic, uint8_t mask);
 // Functions related to ISRs
 
 // Register an ISR
-void int_isr_register(uint8_t index, void* routine);
+void int_isr_register(int index, void* routine);
 
 // Stub ISRs
 void int_isr_stub(InterruptFrame* frame, uint8_t irq);
@@ -78,15 +78,15 @@ void int_isr_fault_dbz(InterruptFrame* frame); // Divide by Zero
 void int_isr_fault_pf(InterruptFrame* frame, uint32_t error_code); // Page Fault
 
 // Macros for registering ISRs
-#define ADD_ISR(i, isr) int_isr_register(i, isr)
+#define REG_ISR(i, isr) int_isr_register(i, isr)
 
-// Note: ADD_ISR_STUB and ADD_ISR_ERR_STUB require using a corresponding
+// Note: REG_ISR_STUB and REG_ISR_ERR_STUB require using a corresponding
 //       DEF_ISR_STUB or DEF_ISR_ERR_STUB.
 
 // Register stub isr handler for normal interrupts
-#define ADD_ISR_STUB(i) ADD_ISR(i, isr_stub_##i)
+#define REG_ISR_STUB(i) REG_ISR(i, isr_stub_##i)
 // Register stub isr handler for interrupts that also push an error code onto the stack
-#define ADD_ISR_ERR_STUB(i) ADD_ISR(i, isr_err_stub_##i)
+#define REG_ISR_ERR_STUB(i) REG_ISR(i, isr_err_stub_##i)
 
 
 // Macros for defining unique stub ISRs for each code.
@@ -112,5 +112,17 @@ void int_isr_fault_pf(InterruptFrame* frame, uint32_t error_code); // Page Fault
         int_isr_stub(frame, i);\
         int_pic_send_eoi();\
     }
+
+#define DECL_ISR_STUB(i) \
+    __attribute__((interrupt))\
+    void isr_stub_##i(InterruptFrame* frame);
+
+#define DECL_ISR_ERR_STUB(i) \
+    __attribute__((interrupt))\
+    void isr_err_stub_##i(InterruptFrame* frame, uint32_t error_code);
+
+#define DECL_ISR_STUB_IRQ(i) DECL_ISR_STUB(i)
+
+#include "int_stubs.h"
 
 #endif

@@ -12,57 +12,13 @@ IDTDescriptor _idtr = {0};
 // Holds 256 entries that correspond to different interrupt codes.
 InterruptDescriptor _idt[256] = {0};
 
-DEF_ISR_STUB(0x00);         // #DE Divide by 0
-DEF_ISR_STUB(0x01);         // #DB Debug
-DEF_ISR_STUB(0x02);         // Non-maskable interrupt
-DEF_ISR_STUB(0x03);         // #BP Breakpoint
-DEF_ISR_STUB(0x04);         // #OF Overflow
-DEF_ISR_STUB(0x05);         // #BR Bound range exceeded
-DEF_ISR_STUB(0x06);         // #UD Invalid opcode
-DEF_ISR_STUB(0x07);         // #NM Device not available
-DEF_ISR_ERR_STUB(0x08);     // #DF Double fault (also default hardware timer, but will remap)
-DEF_ISR_STUB(0x09);         // Coprocessor segment overrun
-DEF_ISR_ERR_STUB(0x0A);     // #TS Invalid TSS
-DEF_ISR_ERR_STUB(0x0B);     // #NP Segment not present
-DEF_ISR_ERR_STUB(0x0C);     // #SS Stack-segment fault
-DEF_ISR_ERR_STUB(0x0D);     // #GP General protection fault
-DEF_ISR_ERR_STUB(0x0E);     // #PF Page fault
-DEF_ISR_STUB(0x0F);         // Reserved
-DEF_ISR_STUB(0x10);         // #MF x87 FP exception
-DEF_ISR_ERR_STUB(0x11);     // #AC Alignment check
-DEF_ISR_STUB(0x12);         // #MC Machine check
-DEF_ISR_STUB(0x13);         // #XM/#XF SIMD Floating-point exception
-DEF_ISR_STUB(0x14);         // #VE Virtualization exception
-DEF_ISR_STUB(0x15);         // #CP Control protection exception
-DEF_ISR_STUB(0x16);         // Reserved
-DEF_ISR_STUB(0x17);         // Reserved
-DEF_ISR_STUB(0x18);         // Reserved
-DEF_ISR_STUB(0x19);         // Reserved
-DEF_ISR_STUB(0x1A);         // Reserved
-DEF_ISR_STUB(0x1B);         // Reserved
-DEF_ISR_STUB(0x1C);         // #HV Hypervisor injection exception
-DEF_ISR_STUB(0x1D);         // #VC VMM communication exception
-DEF_ISR_ERR_STUB(0x1E);     // #SX Security exception
-DEF_ISR_STUB(0x1F);         // Reserved
-
-// Hardware interrupts (IRQs) - 0x20-0x2F
-DEF_ISR_STUB_IRQ(0x20); // Timer
-DEF_ISR_STUB_IRQ(0x21); // Keyboard
-DEF_ISR_STUB_IRQ(0x22);
-DEF_ISR_STUB_IRQ(0x23);
-DEF_ISR_STUB_IRQ(0x24);
-DEF_ISR_STUB_IRQ(0x25);
-DEF_ISR_STUB_IRQ(0x26);
-DEF_ISR_STUB_IRQ(0x27);
-DEF_ISR_STUB_IRQ(0x28);
-DEF_ISR_STUB_IRQ(0x29);
-DEF_ISR_STUB_IRQ(0x2A);
-DEF_ISR_STUB_IRQ(0x2B);
-DEF_ISR_STUB_IRQ(0x2C);
-DEF_ISR_STUB_IRQ(0x2D);
-DEF_ISR_STUB_IRQ(0x2E);
-DEF_ISR_STUB_IRQ(0x2F);
-
+__attribute__((interrupt))
+void effnine(InterruptFrame* frame) {
+    print_color_set(0x0F);
+    print("Interrupt 0xF9 occurred. Halting kernel.\n");
+    int_disable();
+    __asm__("hlt");
+}
 // Sets up the Interrupt Descriptor Table (IDT)
 void int_init() {
     log_info("int_init: initializing interrupt descriptor table.");
@@ -72,63 +28,14 @@ void int_init() {
 
     // Next, setup interrupt routines and load IDT
 
-    // Generate stubs for each of the lowest 32 exceptions
-    ADD_ISR_STUB(0x00);         // #DE Divide by 0
-    ADD_ISR_STUB(0x01);         // #DB Debug
-    ADD_ISR_STUB(0x02);         // Non-maskable interrupt
-    ADD_ISR_STUB(0x03);         // #BP Breakpoint
-    ADD_ISR_STUB(0x04);         // #OF Overflow
-    ADD_ISR_STUB(0x05);         // #BR Bound range exceeded
-    ADD_ISR_STUB(0x06);         // #UD Invalid opcode
-    ADD_ISR_STUB(0x07);         // #NM Device not available
-    ADD_ISR_ERR_STUB(0x08);     // #DF Double fault (also default hardware timer, but that is remapped)
-    ADD_ISR_STUB(0x09);         // Keyboard input
-    ADD_ISR_ERR_STUB(0x0A);     // #TS Invalid TSS
-    ADD_ISR_ERR_STUB(0x0B);     // #NP Segment not present
-    ADD_ISR_ERR_STUB(0x0C);     // #SS Stack-segment fault
-    ADD_ISR_ERR_STUB(0x0D);     // #GP General protection fault
-    ADD_ISR_ERR_STUB(0x0E);     // #PF Page fault
-    ADD_ISR_STUB(0x0F);         // Reserved
-    ADD_ISR_STUB(0x10);         // #MF x87 FP exception
-    ADD_ISR_ERR_STUB(0x11);     // #AC Alignment check
-    ADD_ISR_STUB(0x12);         // #MC Machine check
-    ADD_ISR_STUB(0x13);         // #XM/#XF SIMD Floating-point exception
-    ADD_ISR_STUB(0x14);         // #VE Virtualization exception
-    ADD_ISR_STUB(0x15);         // #CP Control protection exception
-    ADD_ISR_STUB(0x16);         // Reserved
-    ADD_ISR_STUB(0x17);         // Reserved
-    ADD_ISR_STUB(0x18);         // Reserved
-    ADD_ISR_STUB(0x19);         // Reserved
-    ADD_ISR_STUB(0x1A);         // Reserved
-    ADD_ISR_STUB(0x1B);         // Reserved
-    ADD_ISR_STUB(0x1C);         // #HV Hypervisor injection exception
-    ADD_ISR_STUB(0x1D);         // #VC VMM communication exception
-    ADD_ISR_ERR_STUB(0x1E);     // #SX Security exception
-    ADD_ISR_STUB(0x1F);         // Reserved
-
-    // Hardware interrupts (IRQs)
-    ADD_ISR_STUB(0x20); // Timer
-    ADD_ISR_STUB(0x21);
-    ADD_ISR_STUB(0x22);
-    ADD_ISR_STUB(0x23);
-    ADD_ISR_STUB(0x24);
-    ADD_ISR_STUB(0x25);
-    ADD_ISR_STUB(0x26);
-    ADD_ISR_STUB(0x27);
-    ADD_ISR_STUB(0x28);
-    ADD_ISR_STUB(0x29);
-    ADD_ISR_STUB(0x2A);
-    ADD_ISR_STUB(0x2B);
-    ADD_ISR_STUB(0x2C);
-    ADD_ISR_STUB(0x2D);
-    ADD_ISR_STUB(0x2E);
-    ADD_ISR_STUB(0x2F);
-
+    // Register stub ISRs
+    int_stub_register_all();
+    log_info("int_init: registered all stub ISRs.");
     // Add error ISRs
-    ADD_ISR(0x00, int_isr_fault_dbz);
-    ADD_ISR(0x0D, int_isr_fault_gp);
-    ADD_ISR(0x08, int_isr_fault_df);
-    ADD_ISR(0x0E, int_isr_fault_pf);     // #PF Page fault
+    REG_ISR(0x00, int_isr_fault_dbz);
+    REG_ISR(0x0D, int_isr_fault_gp);
+    REG_ISR(0x08, int_isr_fault_df);
+    REG_ISR(0x0E, int_isr_fault_pf);     // #PF Page fault
 
     // Configure PIC
     int_pic_init();
@@ -144,7 +51,7 @@ void int_start() {
     int_enable();
 }
 
-void int_isr_register(uint8_t index, void* routine) {
+void int_isr_register(int index, void* routine) {
     _idt[index].offset_1 = (uint16_t)((uint32_t)routine & 0xFFFF);
     _idt[index].offset_2 = (uint16_t)((uint32_t)routine >> 16);
     _idt[index].selector = 0x08 // Segment selector 0x08
@@ -225,14 +132,14 @@ void int_pic_send_eoi() {
 // 
 // This allows us to see exactly what the interrupt code is for each unhandled interrupt.
 void int_isr_stub(InterruptFrame* frame, uint8_t irq) {
+    int_disable();
     uint8_t c = print_color_get();
     print_color_set(0x0D);
-    log_number_u("Unhandled interrupt", irq, 16);
+    log_number_u("Unhandled interrupt", irq & 0xFF, 16);
     log_number_u("IP", frame->ip, 16);
     log_number_u("CS", frame->cs, 16);
     log_number_u("FLAGS", frame->flags, 16);
     print_color_set(c);
-    int_disable();
     __asm__("hlt");
 }
 
@@ -324,5 +231,18 @@ __attribute__((interrupt))
 void int_isr_fault_pf(InterruptFrame* frame, uint32_t error_code) {
     int_disable();
     int_isr_fault_common_err(frame, error_code, "#PF");
+
+    uint32_t *cr2, *cr3;
+    __asm__("mov %%cr2, %0; mov %%cr3, %1" : "=r"(cr2), "=r"(cr3));
+    log_number_u("CR2 (Accessed Addr)", (uint32_t)cr2, 16);
+    log_number_u("CR3 (Page Directory Addr)", (uint32_t)cr3, 16);
+
+    uint32_t page_dir_index = (uint32_t)cr2 / 0x1000 / 1024;
+    uint32_t page_table_index = (uint32_t)cr2 / 0x1000 % 1024;
+    log_info("Page Directory Entries at and after accessed address:");
+    // log_memory(&cr3[page_dir_index], 16);
+    // uint32_t* page_table = (uint32_t*)cr3[page_dir_index];
+    // log_info("Page Table Entries at and after accessed address:");
+    // log_memory(&page_table[page_table_index], 16);
     __asm__("hlt");
 }
