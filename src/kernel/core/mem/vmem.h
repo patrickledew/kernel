@@ -11,7 +11,8 @@
 #define PAGE_ENTRY_MASK_NOCACHE     0b000000010000 // Disable cache if set
 #define PAGE_ENTRY_MASK_ACCESSED    0b000000100000 // Accessed bit
 #define PAGE_ENTRY_MASK_PAGESIZE    0b000100000000 // Enable 4MiB paging if set
-#define PAGE_ENTRY_MASK_UNUSED      0b111001000000 // Unused bits
+#define PAGE_ENTRY_MASK_PALLOC_END  0b001000000000 // End of a palloc block
+#define PAGE_ENTRY_MASK_UNUSED      0b110001000000 // Unused bits
 
 #define PAGE_SIZE 0x1000
 #define PAGE_TABLE_ENTRIES 0x400
@@ -23,7 +24,6 @@
 
 extern uint32_t _KERNEL_PAGE_DIRECTORY[PAGE_TABLE_ENTRIES]; // each entry corresponds to 0x400 pages
 extern uint32_t _KERNEL_PAGE_TABLE[PAGE_TABLE_ENTRIES]; // each entry corresponds to 1 page (0x1000 bytes)
-
 
 void vmem_init();
 void vmem_load(uint32_t* page_directory);
@@ -37,4 +37,5 @@ void vmem_pd_destroy();
 int vmem_map(uint32_t* page_directory, uint8_t* p_addr, uint8_t* v_addr, uint32_t size, uint16_t flags);
 int vmem_unmap(uint32_t* page_directory, uint8_t* v_addr, uint32_t num_pages);
 
+uint32_t vmem_entry_get(uint32_t* page_directory, uint8_t* v_addr);
 #endif

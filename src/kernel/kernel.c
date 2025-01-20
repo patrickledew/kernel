@@ -19,6 +19,7 @@
 #include "test/fs.test.h"
 #include "test/vmem.test.h"
 #include "test/elf.test.h"
+#include "test/palloc.test.h"
 
 int uptime = 0;
 
@@ -78,8 +79,8 @@ void kmain() {
     // fs_test();
     // vmem_test();
     // elf_test();
-    loader_test("/HELLO.ELF");
-
+    // loader_test("/HELLO.ELF");
+    palloc_test();
     /**
      * -=-=-=-=-=-=-=-=-=-=-=-=-=-=-
      */

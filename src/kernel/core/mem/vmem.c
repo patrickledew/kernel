@@ -125,3 +125,15 @@ int vmem_unmap(uint32_t* page_directory, uint8_t* v_addr, uint32_t num_pages) {
     }
     return 0;
 }
+
+uint32_t vmem_entry_get(uint32_t* page_directory, uint8_t* v_addr) {
+    uint32_t v_addr_aligned = (uint32_t)v_addr & ~0xFFF;
+    uint32_t pd_idx = v_addr_aligned / PAGE_SIZE / PAGE_TABLE_ENTRIES;
+    uint32_t pt_idx = v_addr_aligned / PAGE_SIZE % PAGE_TABLE_ENTRIES;
+    if (page_directory[pd_idx] & PAGE_ENTRY_MASK_PRESENT) {
+        uint32_t* page_table = (uint32_t*)PADDR_TO_KADDR(page_directory[pd_idx] & 0xFFFFF000);
+        return page_table[pt_idx];
+    } else {
+        return 0;
+    }
+}
