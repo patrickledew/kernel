@@ -6,6 +6,21 @@
 #include "util/logging.h"
 #include "util/assert.h"
 
+void loader_test(char* path) {
+    ProgramDescriptor program;
+    load_program(path, &program);
+    vmem_load(program.page_directory);
+    program.entry_point();
+}
+
+
+//TODO Either in this function or a separate function,
+// we need to make use of palloc to allocate pages for the process
+// based on the program headers.
+// Maybe this function can load the program bytes to those pages,
+// and then we can have a separate function to set up the stack,
+// heap, etc. and turn the program into a running process.
+
 int load_program(char* path, ProgramDescriptor* program) {
     int fd = open(path, 0);
     if (fd == -1) {
@@ -23,7 +38,7 @@ int load_program(char* path, ProgramDescriptor* program) {
     ElfHeader header;
     if(elf_parse_header(program->base, &header) == -1) {
         log_error("loader_test: Invalid ELF header.");
-        return;
+        return -1;
     }
 
     // Specify entry point
@@ -33,14 +48,15 @@ int load_program(char* path, ProgramDescriptor* program) {
     for (int ph_off = header.ph_offset; ph_off < header.ph_entry_count*header.ph_entry_size; ph_off += header.ph_entry_size) {
         elf_parse_program_header(program->base, &ph, ph_off);
         if (ph.type == ELF_PT_LOAD) {
-            load_segment(&program, &ph);
+            load_segment(program, &ph);
         }
     }
+    return 0;
     
-    vmem_load(program->page_directory);
-    log_number_u("Loaded process, entry point", program->entry_point, 16);
+    // vmem_load(program->page_directory);
+    // log_number_u("Loaded process, entry point", program->entry_point, 16);
 
-    program->entry_point();
+    // program->entry_point();
 }
 
 void load_segment(ProgramDescriptor* program, ElfProgramHeader* ph) {

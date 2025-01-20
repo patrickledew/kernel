@@ -52,8 +52,10 @@ void kmain() {
     /** Finish setting up paging */
     vmem_init();
 
-    /** Start page-size memory manager */
+    /** Setup kernel page allocator */
     alloc_init(0x1000);
+    /** Setup process memory allocator */
+    palloc_init();
 
     /** Initialize interrupts, then initialize everything that registers an interrupt handler */
     int_init(); // Initialize interrupt descriptor table (IDT)
@@ -79,8 +81,8 @@ void kmain() {
     // fs_test();
     // vmem_test();
     // elf_test();
-    // loader_test("/HELLO.ELF");
-    palloc_test();
+    loader_test("/HELLO.ELF");
+    // palloc_test();
     /**
      * -=-=-=-=-=-=-=-=-=-=-=-=-=-=-
      */
