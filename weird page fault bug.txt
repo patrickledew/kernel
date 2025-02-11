@@ -1,0 +1,26 @@
+PF when yielding processes
+
+Observations
+-------------------
+1. Processes yield back and forth for a couple dozen times and then a page fault occurs
+2. The process stack (esp/ebp registers in pcb) are not blowing up to insane numbers
+3. The page fault is occuring because an address on the stack is being executed (0xF60)
+4. This will cause a garbled instruction to execute, which if they happen to access memory, will cause a random address to be accessed, which causes the PF
+5. The address it's jumping to in the stack equals EBP of the process being switched to
+6. GOES AWAY WHEN DISABLING TIMER
+7. Return IP during timer interrupt is DIFFERENT right before page fault
+	- Non faulting addrs: 0xC0010BC5 (most common) 0xC0010BC8, 0xC000DC39
+	- Faulting addrs: 0xC0011294 [load_new_regs+30], 0xC0011297 (not always though???), 0xC0011774
+		- 0xC0011294 -> seems to be every time
+		- 0xC0011297 -> third time?
+Theory
+-----------
+Main cause is probably the timer interrupt being triggered at an inopportune time
+- Interrupt happens when in load_new_regs
+	- We are in the middle of a switch to a new process
+	- We return from timer ISR, continue with context switch until we enter process_yield fn
+		- This was from hello.elf's previous invocation of yield syscall to yield to second.elf
+	- Execution continues, eventually returning to hello.elf code
+	- Debugging step by step, seems to continue okay????
+
+PROPOSED SOLUTION: disable interrupts during context switch.

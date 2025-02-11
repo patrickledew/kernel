@@ -37,6 +37,7 @@
 
 /** Frequency of the PIT's clock */
 #define PIT_FREQ_HZ 1193181 // Really 1193181.666..hz
+// #define PIT_FREQ_HZ 2000000 // Really 1193181.666..hz
 
 
 /** Interval Table - used to keep track of what routines to run at which intervals */

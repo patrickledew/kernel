@@ -123,4 +123,6 @@ int fat_file_write(FATFile* file, uint8_t* buf, uint32_t length, uint32_t skip);
 FATFile* fat_file_create(char* filename, FATDirectory* directory, uint8_t attributes);
 
 
+void fat_dbg_print_rootdir();
+
 #endif

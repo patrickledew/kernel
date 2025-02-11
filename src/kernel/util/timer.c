@@ -2,6 +2,7 @@
 #include "core/portio/portio.h"
 #include "logging.h"
 #include "core/interrupts/interrupts.h"
+#include "util/assert.h"
 
 // Minimum frequency is ~18.2 hz, since the max value for count registers is 65535.
 // PIT_FREQ_HZ / 65535 = 18.2
@@ -23,7 +24,6 @@ void timer_init(uint16_t freq) {
 
 __attribute__((interrupt))
 void timer_isr(InterruptFrame* frame) {
-    uint8_t c = print_color_get();
     timer_tick();
     int_pic_send_eoi();
 }

@@ -6,11 +6,12 @@
 
 uint32_t* kernel_page_directory;
 uint32_t* kernel_page_table;
+uint32_t* current_page_directory;
 
 void vmem_init() {
     kernel_page_directory = (uint32_t*)((uint32_t)_KERNEL_PAGE_DIRECTORY + 0xC0000000 - 0x100000);
     kernel_page_table = (uint32_t*)((uint32_t)_KERNEL_PAGE_TABLE + 0xC0000000 - 0x100000);
-
+    current_page_directory = kernel_page_directory;
     log_info("vmem_init: cleaning up memory map.");
     vmem_load(kernel_page_directory);
     vmem_zap_identity();
@@ -24,10 +25,14 @@ void vmem_zap_identity() {
 }
 
 void vmem_load(uint32_t* page_directory) {
+    assert_gt_u32(0xc0000000, (uint32_t)page_directory);
     vmem_load_absolute((uint32_t*)KADDR_TO_PADDR(page_directory));
+    current_page_directory = page_directory;
 }
 
 void vmem_load_absolute(uint32_t* page_directory) {
+    // Make sure we are loading from a high memory address
+    // No PTs allowed in low memory
     // log_number_u("Loading page directory at PA", (uint32_t)page_directory, 16);
     __asm__("mov %0, %%cr3" :: "a"(page_directory));
 }
@@ -48,6 +53,7 @@ void vmem_pd_destroy(uint32_t* page_directory) {
     for (int i = 0; i < PAGE_TABLE_ENTRIES; i++) {
         if (page_directory[i] & PAGE_ENTRY_MASK_PRESENT) {
             uint32_t* page_table = (uint32_t*)PADDR_TO_KADDR(page_directory[i] & 0xFFFFF000);
+            if (page_table == kernel_page_table) continue; // We remap this in every page directory, we don't ever want to free it
             free((uint8_t*)page_table);
         }
     }

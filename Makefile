@@ -87,12 +87,19 @@ $(FILESYSTEM):
 fs: fs-clean $(FILESYSTEM)
 
 fs-clean:
-	@-sudo umount fs/mountpoint
+	@-sudo umount -l fs/mountpoint
+	@-sudo umount -l /mnt/c/users/ricky/development/c_c++/kernel/fs/mountpoint
+	@-sudo umount -l /mnt/c/Users/Ricky/Development/C_C++/kernel/fs/mountpoint
 	@-sudo losetup -d /dev/loop0
 	@-rm fs/filesystem.img
 
 clean: fs-clean
 	@-rm -r $(BUILDDIR)/*
 
-programs:
+klib: 
+	@make clean -C src/klib
+	@make -C src/klib
+
+programs: klib
+	@make clean -C $(HOSTED_DIR)
 	@make -C $(HOSTED_DIR)

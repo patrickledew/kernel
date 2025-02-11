@@ -9,6 +9,7 @@
 #include "core/gdt/gdt.h"
 #include "core/proc/loader.h"
 #include "core/interrupts/syscall.h"
+// #include "core/proc/proc.h"
 
 #include "util/timer.h"
 #include "util/assert.h"
@@ -81,7 +82,9 @@ void kmain() {
     // fs_test();
     // vmem_test();
     // elf_test();
-    loader_test("/HELLO.ELF");
+    // loader_test("/HELLO.ELF");
+    fat_dbg_print_rootdir();
+    exec("/HELLO.ELF");
     // palloc_test();
     /**
      * -=-=-=-=-=-=-=-=-=-=-=-=-=-=-

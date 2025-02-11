@@ -25,16 +25,18 @@
 extern uint32_t _KERNEL_PAGE_DIRECTORY[PAGE_TABLE_ENTRIES]; // each entry corresponds to 0x400 pages
 extern uint32_t _KERNEL_PAGE_TABLE[PAGE_TABLE_ENTRIES]; // each entry corresponds to 1 page (0x1000 bytes)
 
+extern uint32_t* current_page_directory;
+
 void vmem_init();
 void vmem_load(uint32_t* page_directory);
 void vmem_load_absolute(uint32_t* page_directory);
 void vmem_zap_identity(); // Zaps the identity page table, which we will no longer use
 
 uint32_t* vmem_pd_create();
-void vmem_pd_destroy();
+void vmem_pd_destroy(uint32_t* page_directory);
 
 // Map a virtual address to a physical address
-int vmem_map(uint32_t* page_directory, uint8_t* p_addr, uint8_t* v_addr, uint32_t size, uint16_t flags);
+int vmem_map(uint32_t* page_directory, uint8_t* p_addr, uint8_t* v_addr, uint32_t num_pages, uint16_t flags);
 int vmem_unmap(uint32_t* page_directory, uint8_t* v_addr, uint32_t num_pages);
 
 uint32_t vmem_entry_get(uint32_t* page_directory, uint8_t* v_addr);

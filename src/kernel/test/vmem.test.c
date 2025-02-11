@@ -35,7 +35,7 @@ void vmem_test() {
     log_info("vmem_test: running virtual memory tests.");
     vmem_test_create_err_page();
     // Register PF interrupt
-    int_isr_register(0x0E, vmem_test_isr_pagefault);
+    REG_ISR(0x0E, vmem_test_isr_pagefault);
 
     // Create page directory
     pd = vmem_pd_create();

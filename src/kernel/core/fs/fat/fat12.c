@@ -482,3 +482,22 @@ FATFile* fat_file_create(char* filename, FATDirectory* directory, uint8_t attrib
 
     return file;
 }
+
+void fat_dbg_print_rootdir() {
+    FATDirectory root = fat_directory_read(0);
+    log_number_u("rootdir file count", root.count, 10);
+    for (int i = 0; i < root.count; i++) {
+        FATFile file = root.entries[i];
+        print_count(file.filename, 8);
+        print_char('.');
+        print_count(file.extension, 3);
+        print(": [");
+        if (file.attributes & FAT_ATTRIBUTE_MASK_SUBDIR) {
+            print("Directory, ");
+        }
+        print_num_u(file.file_size, 10);
+        print(" Bytes, Cluster ");
+        print_num_u(file.start_cluster, 10);
+        println("]");
+    }
+}

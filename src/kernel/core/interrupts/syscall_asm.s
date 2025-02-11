@@ -56,6 +56,7 @@ one_arg:
 syscall_invoke:
     call ebx
     ; Remove stack frame
+syscall_return:
     mov esp, ebp
     pop ebp
     ret

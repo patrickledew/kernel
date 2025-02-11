@@ -30,6 +30,12 @@ void _assert_lt_u32(uint32_t expected, uint32_t actual, int line, char* file);
 void _assert_lt_u16(uint16_t expected, uint16_t actual, int line, char* file);
 void _assert_lt_u8(uint8_t expected, uint8_t actual, int line, char* file);
 
+void _assert_not_in_range_i(int expected_start, int expected_end, int actual, int line, char* file);
+void _assert_not_in_range_u32(uint32_t expected_start, uint32_t expected_end, uint32_t actual, int line, char* file);
+void _assert_not_in_range_u16(uint16_t expected_start, uint16_t expected_end, uint16_t actual, int line, char* file);
+void _assert_not_in_range_u8(uint8_t expected_start, uint8_t expected_end, uint8_t actual, int line, char* file);
+
+
 void assertion_failed(int line, char* file);
 
 #define assert_b(expected, actual) _assert_b(expected, actual, __LINE__, __FILE__)
@@ -55,5 +61,11 @@ void assertion_failed(int line, char* file);
 #define assert_lt_u32(expected, actual) _assert_lt_u32(expected, actual, __LINE__, __FILE__)
 #define assert_lt_u16(expected, actual) _assert_lt_u16(expected, actual, __LINE__, __FILE__)
 #define assert_lt_u8(expected, actual) _assert_lt_u8(expected, actual, __LINE__, __FILE__)
+
+#define assert_not_in_range_i(expected_start, expected_end, actual) _assert_not_in_range_i(expected_start, expected_end, actual, __LINE__, __FILE__)
+#define assert_not_in_range_u32(expected_start, expected_end, actual) _assert_not_in_range_u32(expected_start, expected_end, actual, __LINE__, __FILE__)
+#define assert_not_in_range_u16(expected_start, expected_end, actual) _assert_not_in_range_u16(expected_start, expected_end, actual, __LINE__, __FILE__)
+#define assert_not_in_range_u8(expected_start, expected_end, actual) _assert_not_in_range_u8(expected_start, expected_end, actual, __LINE__, __FILE__)
+
 
 #endif

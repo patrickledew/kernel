@@ -15,7 +15,8 @@
         "loader.h": "c",
         "assert.h": "c",
         "proc.h": "c",
-        "int_stubs.h": "c"
+        "int_stubs.h": "c",
+        "klib.h": "c"
     },
     "debug.onTaskErrors": "debugAnyway"
 }

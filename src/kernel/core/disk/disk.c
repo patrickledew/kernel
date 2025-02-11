@@ -35,7 +35,7 @@ bool disk_detect_floating() {
 
 void disk_init() {
     log_info("disk_init: initializing ATA disk driver.");
-    int_isr_register(ATA_PRIMARY_IRQ, disk_irq);
+    REG_ISR(ATA_PRIMARY_IRQ, disk_irq);
 
     if (disk_detect_floating()) {
         log_error("disk_init: err: no drives connected.");

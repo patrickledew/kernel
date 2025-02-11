@@ -51,7 +51,7 @@ void int_start() {
     int_enable();
 }
 
-void int_isr_register(int index, void* routine) {
+void int_isr_register(int index, void* routine, bool trap) {
     _idt[index].offset_1 = (uint16_t)((uint32_t)routine & 0xFFFF);
     _idt[index].offset_2 = (uint16_t)((uint32_t)routine >> 16);
     _idt[index].selector = 0x08 // Segment selector 0x08
@@ -60,6 +60,7 @@ void int_isr_register(int index, void* routine) {
     _idt[index].type_attributes = 0b1110 // Gate type = 0x1110 = Interrupt Gate. 0x1111 would be Trap gate
                                 | 0b00 << 5 // DPL - ring 0
                                 | 0b1 << 7; // Present bit (always 1)
+    if (trap) _idt[index].type_attributes |= 0b1; // Trap gate
 }
 
 void int_idt_load() {
@@ -230,7 +231,8 @@ void int_isr_fault_dbz(InterruptFrame* frame) {
 __attribute__((interrupt))
 void int_isr_fault_pf(InterruptFrame* frame, uint32_t error_code) {
     int_disable();
-    int_isr_fault_common_err(frame, error_code, "#PF");
+    log_error("Page fault occurred. Halting kernel.");
+    // int_isr_fault_common_err(frame, error_code, "#PF");
 
     uint32_t *cr2, *cr3;
     __asm__("mov %%cr2, %0; mov %%cr3, %1" : "=r"(cr2), "=r"(cr3));
