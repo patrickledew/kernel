@@ -105,6 +105,8 @@ uint8_t* palloc_get_phys(uint8_t* vma, uint32_t* page_directory);
 // returns 0. Otherwise, returns -1.
 int palloc(uint8_t* vma, uint32_t size, uint32_t* page_directory);
 int pfree(uint8_t* vma, uint32_t* page_directory);
+int palloc_stat();
+uint8_t* palloc_find_next_free();
 
 
 #endif

@@ -82,7 +82,7 @@ int vmem_map(uint32_t* page_directory, uint8_t* p_addr, uint8_t* v_addr, uint32_
             // Must be on page boundary
             assert_u32(0, (uint32_t)page_table % 0x1000);
 
-            memfill(page_table, 0x1000, 0); // We need to zero out existing memory
+            memfill((uint8_t*)page_table, 0x1000, 0); // We need to zero out existing memory
             
             // Update page table directory entry
             page_directory[pd_idx] = (uint32_t)KADDR_TO_PADDR(page_table) | PAGE_ENTRY_MASK_PRESENT | PAGE_ENTRY_MASK_READWRITE;

@@ -55,7 +55,7 @@ int load_program(char* path, ProgramDescriptor* program) {
 void load_segment(ProgramDescriptor* program, ElfProgramHeader* ph) {
     assert_u32(ph->align, 0x1000); // Ensure alignment is 4k, because thats how our paging is set up
     uint32_t num_pages = (ph->mem_size + 0xFFF) / 0x1000;
-    palloc(ph->v_addr, num_pages, program->page_directory);
+    palloc((uint8_t*)ph->v_addr, num_pages, program->page_directory);
 
     // We have to use a temporary mapping in order to copy the data into the allocated region.
     // Since the rest of the page table (including stack mapping) has not been setup yet,
@@ -65,14 +65,14 @@ void load_segment(ProgramDescriptor* program, ElfProgramHeader* ph) {
     // palloc does not always give contiguous memory regions
     // so we'd need to check every PT entry and map it to temporary region
     // basically just do it page by page
-    uint32_t allocated_phys = vmem_entry_get(program->page_directory, ph->v_addr) & ~(0xFFF); // Get physical address of this segment
+    uint32_t allocated_phys = vmem_entry_get((uint32_t*)program->page_directory, (uint8_t*)ph->v_addr) & ~(0xFFF); // Get physical address of this segment
     uint32_t temp_virt = 0xd0000000;
-    vmem_map(current_page_directory, allocated_phys, temp_virt, num_pages, PAGE_ENTRY_MASK_PRESENT | PAGE_ENTRY_MASK_READWRITE);
+    vmem_map(current_page_directory, (uint8_t*)allocated_phys, (uint8_t*)temp_virt, num_pages, PAGE_ENTRY_MASK_PRESENT | PAGE_ENTRY_MASK_READWRITE);
     vmem_load(current_page_directory); // Load page table we just setup so we can copy to allocated region
     
-    memcpy(program->data + ph->offset, temp_virt, ph->file_size);
+    memcpy(program->data + ph->offset, (uint8_t*)temp_virt, ph->file_size);
     
-    vmem_unmap(current_page_directory, temp_virt, num_pages); // Unmap the segment from the current page directoryn
+    vmem_unmap(current_page_directory, (uint8_t*)temp_virt, num_pages); // Unmap the segment from the current page directoryn
     vmem_load(current_page_directory); // Load page table we just setup so we can copy to allocated region
 
 }

@@ -47,7 +47,7 @@ void process_setup_stack(ProcessControlBlock* pcb) {
     uint32_t temp_virt = 0xd0000000;
     uint32_t allocated_phys = vmem_entry_get(pcb->page_directory, 0) & ~(0xFFF); // Get physical address of the stack for the new process
 
-    vmem_map(current_page_directory, allocated_phys, temp_virt, PROCESS_STACK_SIZE / PAGE_SIZE, PAGE_ENTRY_MASK_PRESENT | PAGE_ENTRY_MASK_READWRITE);
+    vmem_map(current_page_directory, (uint8_t*)allocated_phys, (uint8_t*)temp_virt, PROCESS_STACK_SIZE / PAGE_SIZE, PAGE_ENTRY_MASK_PRESENT | PAGE_ENTRY_MASK_READWRITE);
     vmem_load(current_page_directory); // Load page table we just setup so we can copy to allocated region
     
     pcb->stack_base = PROCESS_STACK_SIZE;
@@ -56,7 +56,7 @@ void process_setup_stack(ProcessControlBlock* pcb) {
     // When a program exits they with ret with this address.
     *((uint32_t*)(temp_virt + pcb->stack_base - 4)) = (uint32_t)process_exit;
     
-    vmem_unmap(current_page_directory, temp_virt, PROCESS_STACK_SIZE / PAGE_SIZE); // Unmap the segment from the current page directory
+    vmem_unmap(current_page_directory, (uint8_t*)temp_virt, PROCESS_STACK_SIZE / PAGE_SIZE); // Unmap the segment from the current page directory
     vmem_load(current_page_directory); // Unload the temporary mapping
 
     pcb->regs.esp = pcb->stack_base - 4;
@@ -98,8 +98,19 @@ void process_yield() {
     for (int i = 1; i < 100; i++) {
         if (processes[i].pid != cur_pid && processes[i].state == PROC_STATE_RUNNING) {
             process_switch(&processes[i]);
-            dbg_counter++;
             return;
         }
     }
+    // If we didn't find a process to switch to, just stay on the current process.
+}
+
+void process_kill(ProcessControlBlock* pcb) {
+    // Problem: if we kill the current process, we will likely unmap the pages for the process itself.
+    // This will cause a page fault.
+
+    // BUT... if we switch to a new process, it will start executing other irrelevant code.
+    // I guess we mark the process as stopped and then yield? Then cleanup later?
+
+    process_destroy(pcb);
+    pid_counter--;
 }

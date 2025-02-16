@@ -11,8 +11,8 @@ uint8_t* palloc_bitmap;
 void palloc_init() {
     // Every 2 bits in the bitmap represents a page,
     // so we need 1/4 as many bytes as pages.
-    palloc_bitmap = alloc(PAGE_SIZE);
-    memfill(palloc_bitmap, 0, PAGE_SIZE);
+    palloc_bitmap = alloc((uint32_t)PAGE_SIZE);
+    memfill(palloc_bitmap, PAGE_SIZE, 0);
 }
 
 int palloc_map_page(uint8_t* vaddr, uint8_t* paddr, uint32_t* page_directory, bool is_end) {
@@ -26,7 +26,7 @@ int palloc_map_page(uint8_t* vaddr, uint8_t* paddr, uint32_t* page_directory, bo
 uint8_t* palloc_find_next_free() {
     for (int page_idx = 0; page_idx < PAGE_SIZE * 8; page_idx++) {
         if (!P_PAGE_USED(page_idx)) {
-            return PALLOC_PHYS_BASE + page_idx * PAGE_SIZE;
+            return (uint8_t*)(PALLOC_PHYS_BASE + page_idx * PAGE_SIZE);
         }
     }
     return 0;
@@ -44,7 +44,7 @@ int palloc_stat() {
 }
 
 int palloc(uint8_t* vma, uint32_t size, uint32_t* page_directory) {
-    if (vma < PALLOC_VIRT_BASE || vma >= PALLOC_VIRT_LIMIT) {
+    if (vma < (uint8_t*)PALLOC_VIRT_BASE || vma >= (uint8_t*)PALLOC_VIRT_LIMIT) {
         // Outside of palloc virtual range
         return -1;
     }
@@ -82,14 +82,14 @@ int palloc(uint8_t* vma, uint32_t size, uint32_t* page_directory) {
 }
 
 int pfree(uint8_t* vma, uint32_t* page_directory) {
-    if (vma < PALLOC_VIRT_BASE || vma >= PALLOC_VIRT_LIMIT) {
+    if (vma < (uint8_t*)PALLOC_VIRT_BASE || vma >= (uint8_t*)PALLOC_VIRT_LIMIT) {
         // Outside of palloc virtual range
         return -1;
     }
 
     vma = (uint8_t*)((uint32_t)vma & ~0xFFF);
 
-    while (vma < PALLOC_VIRT_LIMIT) {
+    while (vma < (uint8_t*)PALLOC_VIRT_LIMIT) {
         // Get physical address from page table
         uint32_t entry = vmem_entry_get(page_directory, vma);
         if (!entry || !(entry & PAGE_ENTRY_MASK_PRESENT)) {
