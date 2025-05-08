@@ -1,5 +1,6 @@
 #ifndef DISK_H
 #define DISK_H
+
 #include "types.h"
 #include "core/interrupts/interrupts.h"
 // This file contains defines for interfacing with ATA hard drives directly, through port IO.

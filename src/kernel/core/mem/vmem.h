@@ -22,8 +22,8 @@
 #define KADDR_TO_PADDR(kaddr) ((uint8_t*)((uint32_t)(kaddr) - 0xC0000000 + 0x100000))
 #define PADDR_TO_KADDR(paddr) ((uint8_t*)((uint32_t)(paddr) + 0xC0000000 - 0x100000))
 
-extern uint32_t _KERNEL_PAGE_DIRECTORY[PAGE_TABLE_ENTRIES]; // each entry corresponds to 0x400 pages
-extern uint32_t _KERNEL_PAGE_TABLE[PAGE_TABLE_ENTRIES]; // each entry corresponds to 1 page (0x1000 bytes)
+extern uint32_t _KERNEL_PAGE_DIRECTORY_PHYS[PAGE_TABLE_ENTRIES]; // each entry corresponds to 0x400 pages
+extern uint32_t _KERNEL_PAGE_TABLE_PHYS[PAGE_TABLE_ENTRIES]; // each entry corresponds to 1 page (0x1000 bytes)
 
 extern uint32_t* current_page_directory;
 

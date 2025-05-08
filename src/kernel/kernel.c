@@ -16,11 +16,13 @@
 #include "util/logging.h"
 #include "util/keyboard.h"
 #include "util/strutil.h"
+#include "util/panic.h"
 
 #include "test/fs.test.h"
 #include "test/vmem.test.h"
 #include "test/elf.test.h"
 #include "test/palloc.test.h"
+#include "test/malloc.test.h"
 
 int uptime = 0;
 
@@ -84,7 +86,8 @@ void kmain() {
     // elf_test();
     // loader_test("/HELLO.ELF");
     fat_dbg_print_rootdir();
-    exec("/HELLO.ELF");
+    malloc_test();
+    // exec("/HELLO.ELF");
     // palloc_test();
     /**
      * -=-=-=-=-=-=-=-=-=-=-=-=-=-=-

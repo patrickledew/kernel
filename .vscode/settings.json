@@ -16,7 +16,10 @@
         "assert.h": "c",
         "proc.h": "c",
         "int_stubs.h": "c",
-        "klib.h": "c"
+        "klib.h": "c",
+        "malloc.h": "c",
+        "stddef.h": "c",
+        "stdbool.h": "c"
     },
     "debug.onTaskErrors": "debugAnyway"
 }

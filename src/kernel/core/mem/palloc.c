@@ -1,6 +1,7 @@
 #include "palloc.h"
 #include "alloc.h"
 #include "memory.h"
+#include "util/logging.h"
 // PROCESS allocator
 // Unlike alloc.c, which is for allocating pages in kernel space, this
 // allocator is for allocating pages for user space programs. This allocator
@@ -24,6 +25,7 @@ int palloc_map_page(uint8_t* vaddr, uint8_t* paddr, uint32_t* page_directory, bo
 
 // Returns the physical address, or 0 if out of memory
 uint8_t* palloc_find_next_free() {
+
     for (int page_idx = 0; page_idx < PAGE_SIZE * 8; page_idx++) {
         if (!P_PAGE_USED(page_idx)) {
             return (uint8_t*)(PALLOC_PHYS_BASE + page_idx * PAGE_SIZE);
@@ -31,6 +33,52 @@ uint8_t* palloc_find_next_free() {
     }
     return 0;
 }
+// Returns the next virtual address that's free, according to the page directory.
+// Useful for allocating memory in user space.
+uint8_t* palloc_find_next_free_v(uint32_t* page_directory) {
+ // 1. Iterate over page directory to get page tables
+ // NOTE: skips over the first page table, which is reserved (and so we can use 0 as a error value)
+    for (int i = 1; i < PAGE_TABLE_ENTRIES; i++) {
+        uint32_t entry = page_directory[i];
+
+        if (entry & PAGE_ENTRY_MASK_PRESENT) {
+            // This page table is present, iterate over it
+            uint32_t* page_table = PADDR_TO_KADDR((uint32_t*)(entry & ~0xFFF));
+
+            for (int j = 0; j < PAGE_TABLE_ENTRIES; j++) {
+
+
+                if (!(page_table[j] & PAGE_ENTRY_MASK_PRESENT)) {
+                    log_number("palloc_find_next_free_v: page entry found:", ((i * PAGE_SIZE * PAGE_TABLE_ENTRIES) + (j * PAGE_SIZE)), 16);
+
+                    // This page is free, return the virtual address
+                    return (uint8_t*)((i * PAGE_SIZE * PAGE_TABLE_ENTRIES) + (j * PAGE_SIZE));
+                }
+            }
+        } else {
+            log_number("palloc_find_next_free_v: empty page table found:", (i * PAGE_SIZE * PAGE_TABLE_ENTRIES), 16);
+
+            // This page table is not present, so all pages in it are free
+            return (uint8_t*)(i * PAGE_SIZE * PAGE_TABLE_ENTRIES);
+        }
+    }
+    return 0;  
+}
+
+uint8_t* palloc_next_free(uint32_t* page_directory) {
+    uint8_t* virt = palloc_find_next_free_v(page_directory);
+    if (virt == 0) {
+        return 0;
+    }
+    // Allocate the page
+    if (palloc(virt, PAGE_SIZE, page_directory) == -1) {
+        return 0;
+    }
+
+    return virt;
+}
+
+
 
 // Returns number of free pages
 int palloc_stat() {

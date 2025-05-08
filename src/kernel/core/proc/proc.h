@@ -3,6 +3,10 @@
 
 #include "types.h"
 
+typedef struct ProcessControlBlock ProcessControlBlock;
+
+#include "core/mem/malloc.h"
+
 typedef struct {
     uint32_t eax;
     uint32_t ebx;
@@ -28,7 +32,7 @@ typedef enum {
     PROC_STATE_STOPPED
 } ProcessState;
 
-typedef struct {
+typedef struct ProcessControlBlock {
     Registers regs;
     ProcessState state;
     uint32_t pid;
@@ -37,6 +41,7 @@ typedef struct {
     uint32_t stack_base;     // Stack pointer
     uint32_t stack_size;    // Size of process stack
     uint32_t status;        // Exit status
+    MallocInfo* malloc_info; // Pointer to info needed by malloc - will be initialized on first call to malloc()
 } __attribute__((packed)) ProcessControlBlock;
 
 #define PROCESS_STACK_SIZE 0x1000
@@ -50,7 +55,7 @@ extern ProcessControlBlock processes[100];
 // Returns the PID of the new process, or -1 if the process could not be created.
 int exec(char* path);
 
-
+ProcessControlBlock* process_get(int pid);
 void process_exit();
 void process_setup_stack(ProcessControlBlock* pcb);
 void process_regs_init(ProcessControlBlock* pcb);

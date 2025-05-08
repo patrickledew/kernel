@@ -7,6 +7,13 @@ int pid_counter = 1; // Start at 1 so first process is PID=1
 int cur_pid = 0;
 ProcessControlBlock processes[100];
 
+ProcessControlBlock* process_get(int pid) {
+    if (pid < 0 || pid >= 100) {
+        return 0;
+    }
+    return &processes[pid];
+}
+
 int exec(char* path) {
     // Load program into memory and setup page tables
     ProgramDescriptor program;

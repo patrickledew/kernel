@@ -1,12 +1,5 @@
 #include "int_stubs.h"
 
-__attribute__((interrupt))
-void common(InterruptFrame* frame) {
-    int_disable();
-    int_isr_stub(frame, 0xFF);
-    __asm__("hlt");
-}
-
 void int_stub_register_all() {
     REG_ISR_STUB(0x00);         // #DE Divide by 0
     REG_ISR_STUB(0x01);         // #DB Debug

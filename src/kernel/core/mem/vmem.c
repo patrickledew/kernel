@@ -9,8 +9,8 @@ uint32_t* kernel_page_table;
 uint32_t* current_page_directory;
 
 void vmem_init() {
-    kernel_page_directory = (uint32_t*)((uint32_t)_KERNEL_PAGE_DIRECTORY + 0xC0000000 - 0x100000);
-    kernel_page_table = (uint32_t*)((uint32_t)_KERNEL_PAGE_TABLE + 0xC0000000 - 0x100000);
+    kernel_page_directory = (uint32_t*)((uint32_t)_KERNEL_PAGE_DIRECTORY_PHYS + 0xC0000000 - 0x100000);
+    kernel_page_table = (uint32_t*)((uint32_t)_KERNEL_PAGE_TABLE_PHYS + 0xC0000000 - 0x100000);
     current_page_directory = kernel_page_directory;
     log_info("vmem_init: cleaning up memory map.");
     vmem_load(kernel_page_directory);

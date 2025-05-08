@@ -2,8 +2,8 @@
 section .kernel_init
 
 global _start
-global _KERNEL_PAGE_DIRECTORY
-global _KERNEL_PAGE_TABLE
+global _KERNEL_PAGE_DIRECTORY_PHYS
+global _KERNEL_PAGE_TABLE_PHYS
 
 extern kmain
 
@@ -84,11 +84,11 @@ call_main:
 ;; Allocate space for page directory and page tables. Kernel page table will be reused.
 align 4096
 
-_KERNEL_PAGE_DIRECTORY:
+_KERNEL_PAGE_DIRECTORY_PHYS:
 init_page_directory:
     times 1024 dd 0 ; 1024 32-bit entries
 
-_KERNEL_PAGE_TABLE:
+_KERNEL_PAGE_TABLE_PHYS:
 init_page_table:
     times 1024 dd 0
 
