@@ -1,3 +1,13 @@
+/*
+ * syscall.h
+ *
+ * This header file defines the system call interface for the kernel. It provides
+ * structures and macros for implementing system calls, including a syscall table
+ * and handler mechanisms. The file includes definitions for creating system calls
+ * with different numbers of arguments and manages the low-level details of system
+ * call registration and execution.
+ */
+
 #ifndef SYSCALL_H
 #define SYSCALL_H
 #include "types.h"

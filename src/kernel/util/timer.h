@@ -1,3 +1,12 @@
+/**
+ * timer.h
+ *
+ * Header file for managing the Programmable Interval Timer (PIT) hardware. This module
+ * provides functions for initializing and configuring the PIT, handling timer interrupts,
+ * and managing interval-based task scheduling. It enables precise system timing and
+ * periodic execution of routines at specified millisecond intervals.
+ */
+
 #ifndef TIMER_H
 #define TIMER_H
 #include "types.h"
@@ -52,6 +61,7 @@ typedef struct {
 void timer_init(uint16_t freq);
 void timer_isr(InterruptFrame* frame);
 void timer_tick();
+uint32_t timer_get_tick();
 void timer_interval_run();
 int timer_interval_set(uint32_t ms, void (*routine)());
 int timer_interval_clear(int index);

@@ -1,11 +1,17 @@
+/*
+ * fat12.h
+ * 
+ * Header file defining the structures and functions for a FAT12 filesystem driver.
+ * This implementation provides basic file operations for a FAT12 filesystem mounted
+ * after the kernel image. It includes definitions for filesystem constants, data
+ * structures for the BIOS Parameter Block, FAT entries, directories, and files,
+ * as well as function declarations for reading, writing, and managing the filesystem.
+ */
+
 #ifndef FAT12_H
 #define FAT12_H
 
 #include "types.h"
-
-// Filesystem code
-// For now i'm going to be attempting to use a FAT12 filesystem,
-// the partion for which is located immediately after the kernel image.
 
 /**
  * TODOS for FAT12 driver

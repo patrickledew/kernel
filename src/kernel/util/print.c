@@ -16,6 +16,11 @@ void print_char(char c) {
         return;
     }
 
+    if (c == '\r') {
+        _col = 0;
+        return;
+    }
+
     if (c == '\b') {
         if (_col == 0) {
             if (_row == 0) {

@@ -18,6 +18,21 @@ uint32_t pages_free;
 uint8_t* p_bitmap;
 uint8_t* p_start; // start of allocatable region
 
+
+void alloc_dbg() {
+    int col = print_cursor_col_get();
+    int row = print_cursor_row_get();
+    uint8_t color = print_color_get();
+    print_cursor_set(0, 40);
+    print_color_set(0x0C);
+    print("A: ");
+    print_num(num_pages - pages_free, 10);
+    print(" / ");
+    print_num(num_pages, 10);
+    print_cursor_set(row, col);
+    print_color_set(color);
+}
+
 // alloc_init
 // Initializes a bitmap to keep track of which pages are free or used.
 // This locates the bitmap at the end of the kernel address space.
@@ -39,7 +54,7 @@ void alloc_init(int pages)
     p_start = (uint8_t*)(ptr_u32 % 0x1000 == 0 
                         ? ptr_u32 
                         : ptr_u32 + (0x1000 - ptr_u32 % 0x1000));
-
+    
 }
 
 uint32_t mem_report() {

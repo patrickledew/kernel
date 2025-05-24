@@ -1,3 +1,13 @@
+/*
+ * int_stubs.h
+ * 
+ * This header file declares all x86 Interrupt Service Routine (ISR) stubs for the kernel.
+ * It covers the complete range of possible interrupts from 0x00 to 0xFF, including CPU
+ * exceptions (0x00-0x1F), hardware interrupts (0x20-0x2F), and general purpose interrupts
+ * (0x30-0xFF). Each stub is declared using macros that generate the appropriate function
+ * declarations and definitions.
+ */
+
 #ifndef INT_STUBS_H
 #define INT_STUBS_H
 

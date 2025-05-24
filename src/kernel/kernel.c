@@ -1,3 +1,12 @@
+/*
+ * kernel.c
+ *
+ * This is the main kernel entry point and initialization file. It contains the kmain
+ * function which is called after boot, and handles the setup and initialization of
+ * all core kernel subsystems including memory management, interrupts, device drivers,
+ * and the filesystem. It also provides a space for running various system tests.
+ */
+
 #include "core/mem/vmem.h"
 #include "core/mem/alloc.h"
 #include "core/mem/memory.h"
@@ -9,7 +18,6 @@
 #include "core/gdt/gdt.h"
 #include "core/proc/loader.h"
 #include "core/interrupts/syscall.h"
-// #include "core/proc/proc.h"
 
 #include "util/timer.h"
 #include "util/assert.h"
@@ -66,7 +74,8 @@ void kmain() {
     timer_init(1000); // Initialize hardware timer at 1khz
     timer_interval_set(1000, show_uptime);
     timer_interval_set(10, print_cursor_refresh);
-
+    timer_interval_set(10, alloc_dbg);
+    timer_interval_set(10, palloc_dbg);
     keyboard_init(); // Initialize keyboard driver
     disk_init(); // Initialize ATA disk driver
     syscall_init();

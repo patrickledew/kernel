@@ -1,3 +1,12 @@
+/*
+ * print.h
+ *
+ * This header file defines the interface for basic screen output operations in the
+ * kernel. It provides functions for printing characters, strings, and numbers to
+ * the screen, as well as cursor manipulation and screen color control. The
+ * functions declared here form the core text output functionality of the kernel.
+ */
+
 #ifndef PRINT_H
 #define PRINT_H
 

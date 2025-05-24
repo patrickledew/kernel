@@ -1,3 +1,12 @@
+/*
+ * keyboard.h
+ *
+ * This header file defines the keyboard interface for the kernel. It contains scancode 
+ * mapping tables for translating keyboard input, definitions for keyboard I/O ports, 
+ * and function declarations for keyboard initialization and interrupt handling. The file 
+ * provides both normal and shift-modified character mappings for keyboard input processing.
+ */
+
 #ifndef KEYBOARD_H
 #define KEYBOARD_H
 

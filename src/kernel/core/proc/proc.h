@@ -1,3 +1,13 @@
+/*
+ * proc.h
+ *
+ * Defines process management structures and functions for the kernel. This header 
+ * file contains the ProcessControlBlock structure which manages process state,
+ * including registers, memory allocation, and execution status. It provides the 
+ * interface for process creation, switching, and termination operations essential
+ * for the kernel's multitasking capabilities.
+ */
+
 #ifndef PROC_H
 #define PROC_H
 

@@ -1,3 +1,12 @@
+/**
+ * elf.h
+ * 
+ * Header file defining structures and constants for parsing ELF (Executable and 
+ * Linkable Format) files. This includes definitions for the ELF header format,
+ * program headers, and related constants used in the loading and parsing of
+ * executable files in the kernel.
+ */
+
 #ifndef ELF_H
 #define ELF_H
 

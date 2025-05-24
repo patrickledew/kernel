@@ -1,3 +1,13 @@
+/*
+ * vmem.h
+ *
+ * This header file defines structures and functions for managing virtual memory
+ * through page tables in a kernel environment. It includes definitions for page
+ * table entry flags, page size constants, and memory address conversion macros.
+ * The file provides functions for initializing virtual memory, creating and
+ * destroying page directories, and mapping virtual addresses to physical addresses.
+ */
+
 #ifndef VMEM_H
 #define VMEM_H
 #include "types.h"

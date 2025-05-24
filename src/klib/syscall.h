@@ -1,3 +1,12 @@
+/*
+ * syscall.h
+ *
+ * Header file defining system call numbers and prototypes for invoking system
+ * calls in the kernel. Contains constants for different system call types and
+ * declarations for functions that handle system calls with different numbers
+ * of arguments.
+ */
+
 #ifndef SYSCALL_H
 #define SYSCALL_H
 

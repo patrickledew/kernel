@@ -1,3 +1,11 @@
+/* logging.h
+
+ * Provides kernel-level logging utilities. Includes functions for printing various types
+ * of messages with different formatting and color schemes, as well as memory dumping
+ * capabilities for debugging purposes. This header defines the interface for basic
+ * logging operations used throughout the kernel.
+ */
+
 #ifndef LOGGING_H
 #define LOGGING_H
 

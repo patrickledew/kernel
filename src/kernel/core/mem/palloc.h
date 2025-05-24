@@ -1,3 +1,13 @@
+/*
+ * palloc.h
+ *
+ * Physical memory allocator interface that manages the system's physical memory pages. 
+ * It provides functions for allocating, mapping, and freeing physical memory pages, 
+ * maintaining a bitmap to track page usage, and handling virtual-to-physical address 
+ * translations within page directories. The allocator operates on a fixed memory 
+ * region starting at 4MiB past the kernel's base address.
+ */
+
 #ifndef PALLOC_H
 #define PALLOC_H
 
@@ -52,6 +62,10 @@ int pfree(uint8_t* vma, uint32_t* page_directory);
 int palloc_stat();
 
 uint8_t* palloc_find_next_free();
+
+
+void palloc_dbg();
+
 
 
 #endif

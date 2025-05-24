@@ -1,3 +1,12 @@
+/*
+ * vga.h
+ *
+ * Header file defining VGA (Video Graphics Array) interface functions and constants.
+ * Provides low-level access to VGA hardware through port I/O operations, cursor
+ * manipulation, and character display functions. Includes definitions for VGA
+ * buffer memory location and screen dimensions.
+ */
+
 #ifndef VGA_H
 #define VGA_H
 

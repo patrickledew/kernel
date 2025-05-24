@@ -1,3 +1,13 @@
+/*
+ * interrupts.h
+ *
+ * Header file containing core interrupt handling functionality for the kernel.
+ * This includes definitions for programmable interrupt controller (PIC) commands,
+ * interrupt descriptor table (IDT) structures, and various macros and function
+ * declarations for managing system interrupts, fault handlers, and interrupt
+ * service routines (ISRs).
+ */
+
 #ifndef INTERRUPTS_H
 #define INTERRUPTS_H
 

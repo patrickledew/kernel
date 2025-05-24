@@ -1,3 +1,12 @@
+/*
+ * portio.h
+ *
+ * This header file defines functions for performing basic input/output operations
+ * through hardware ports. It provides low-level routines for reading from and
+ * writing to I/O ports, which is essential for interacting with hardware devices
+ * in a kernel environment.
+ */
+
 #ifndef IO_H
 #define IO_H
 

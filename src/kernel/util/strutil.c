@@ -46,3 +46,21 @@ int strcmp(char* first, char* second, uint32_t count) {
 
     return 0;
 }
+
+char* strcat(char* dest, char* source) {
+    
+    // Advance to end of dest
+    int i = 0;
+    while (dest[i] != 0) { i++; }
+
+    // Copy source to dest starting at the end of dest
+    int j = 0;
+    while (source[j] != 0) {
+        dest[i + j] = source[j];
+        j++;
+    }
+    
+    // Null terminator
+    dest[i + j] = 0;
+    return dest;
+}

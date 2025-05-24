@@ -1,3 +1,12 @@
+/*
+ * strutil.h
+ *
+ * A collection of utility functions for manipulating and comparing strings.
+ * Provides basic string operations such as length calculation, copying,
+ * splitting, and comparison for null-terminated strings. These functions
+ * are essential for string handling in the kernel.
+ */
+
 #ifndef STRUTIL_H
 #define STRUTIL_H
 
@@ -22,6 +31,8 @@ int strsplit(char* str, char c, char* dest, uint32_t skip);
 // - All characters in `first` match those in `second`, but `second` has more characters.
 // Additionally, if `count` is greater than zero, only a max of `count` characters will be compared.
 int strcmp(char* first, char* second, uint32_t count);
+
+char* strcat(char* dest, char* source);
 
 
 #endif

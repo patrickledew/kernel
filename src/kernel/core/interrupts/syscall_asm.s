@@ -1,3 +1,11 @@
+;; syscall_asm.s
+;;
+;; This file contains the assembly code for handling system calls in the kernel.
+;; It sets up the low-level interrupt handler for system calls, manages register
+;; preservation, and handles argument passing to system call functions. The handler
+;; supports up to two arguments and ensures proper stack frame setup and cleanup
+;; for each system call.
+
 [bits 32]
 global syscall_handler
 extern syscall_table

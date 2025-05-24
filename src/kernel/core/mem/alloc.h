@@ -1,3 +1,20 @@
+/*
+* alloc.h
+*
+* Memory allocation header file that defines page-based memory management structures
+* and functions. It provides a simple paged memory allocation system with bitmap
+* tracking of used/free pages and page boundaries. The allocator works with fixed
+* page sizes and manages memory within the kernel's address space.
+*
+* The allocatable region starts at the end of the kernel image and is managed using a bitmap
+* to track the status of each page.
+*
+* Each entry in the bitmap is composed of two bits:
+* - The first bit indicates whether the page is used (1) or free (0).
+* - The second bit indicates whether the page is the last page in a contiguous block (1) or not (0). This is 
+*   needed to know how many pages to free when freeing a block of memory.
+*/
+
 #ifndef ALLOC_H
 #define ALLOC_H
 /*
@@ -27,8 +44,7 @@ extern uint8_t __KERNEL_END;
 #define KERNEL_BEGIN &__KERNEL_BEGIN
 #define KERNEL_END &__KERNEL_END
 
-#define ALLOC_REGION_START KERNEL_END
-
+void alloc_dbg();
 void alloc_init(int pages);
 uint8_t* alloc(uint32_t size);
 uint32_t free(uint8_t* addr);

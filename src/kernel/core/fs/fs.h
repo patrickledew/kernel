@@ -1,6 +1,14 @@
+/*
+ * fs.h
+ *
+ * This header file defines the core filesystem interface for the kernel. It provides
+ * essential file operation functions and structures, particularly focusing on file
+ * descriptor management for handling open files. The interface is designed to be
+ * filesystem-agnostic while currently implementing FAT12 support.
+ */
+
 #ifndef FS_H
 #define FS_H
-// Main file for filesystem operations. Utilizes file descriptors to keep track of opened files.
 
 #include "fat/fat12.h"
 

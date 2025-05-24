@@ -1,3 +1,15 @@
+/*
+ * gdt.h
+ *
+ * Header file defining the structures and functions for managing the Global Descriptor
+ * Table (GDT). The GDT is a data structure used by x86 processors for memory
+ * segmentation, containing entries that describe memory segments including their
+ * base address, size, and access privileges.
+ * 
+ * With this kernel, the only entries in the GDT are the null descriptor, the kernel code
+ * segment, and the kernel data segment (both of which span the entire 32-bit address space). 
+ */
+
 #ifndef GDT_H
 #define GDT_H
 

@@ -1,3 +1,13 @@
+/*
+ * assert.h
+ *
+ * Provides a comprehensive set of assertion macros and functions for testing
+ * and debugging. Includes equality checks, inequality checks, greater/less than
+ * comparisons, and range validation for various data types including integers,
+ * booleans, and strings. When assertions fail, they can optionally break
+ * execution for debugging purposes.
+ */
+
 #ifndef ASSERT_H
 #define ASSERT_H
 

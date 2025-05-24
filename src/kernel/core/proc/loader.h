@@ -1,3 +1,13 @@
+/*
+ * loader.h
+ *
+ * Provides interfaces and data structures for loading executable programs into
+ * memory. This includes handling ELF file parsing, memory allocation, and
+ * program segment loading. The loader is responsible for creating program
+ * descriptors that contain essential information about loaded binaries,
+ * which are then used to create process control blocks for execution.
+ */
+
 #ifndef LOADER_H
 #define LOADER_H
 

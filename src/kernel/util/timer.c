@@ -28,11 +28,14 @@ void timer_isr(InterruptFrame* frame) {
     int_pic_send_eoi();
 }
 
-
 uint32_t tick = 0;
 void timer_tick() {
     tick++;
     timer_interval_run();
+}
+
+uint32_t timer_get_tick() {
+    return tick;
 }
 
 interval_desc interval_table[INTERVAL_TABLE_ENTRIES] = { 0 };

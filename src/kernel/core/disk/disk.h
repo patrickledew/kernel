@@ -1,10 +1,20 @@
+/*
+ * disk.h
+ *
+ * Header file defining the interface for ATA disk operations. This file contains
+ * constants, type definitions, and function declarations necessary for direct
+ * port I/O communication with ATA hard drives. It provides a basic implementation
+ * for reading and writing sectors using PIO mode, handling disk interrupts, and
+ * identifying disk characteristics.
+ * 
+ * Note: this method is inherently slow and there exist other (much faster) solutions, namely DMA.
+ */
+
 #ifndef DISK_H
 #define DISK_H
 
 #include "types.h"
 #include "core/interrupts/interrupts.h"
-// This file contains defines for interfacing with ATA hard drives directly, through port IO.
-// Note: this method is inherently slow and there exist other (much faster) solutions, namely DMA.
 
 // Additional note: ATA supports at least 2 disks, so this could be improved by allowing reading
 // from the secondary disk as well.
