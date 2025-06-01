@@ -3,6 +3,7 @@
 
 #include "klib.h"
 #include "syscall.h"
+#include <stddef.h>
 
 void print(char *str) {
     syscall_invoke_1(SYSCALL_PRINT, (int)str);
@@ -50,8 +51,14 @@ int seek(int fd, int offset) {
     return -1;
 }
 
-void exit(int status) {
-    println("exit: not implemented.");
-    // syscall_invoke_1(SYSCALL_EXIT, status);
+void exit() {
+    syscall_invoke_0(SYSCALL_EXIT);
 }
 
+void* malloc(size_t size) {
+    return (void*)syscall_invoke_1(SYSCALL_MALLOC, size);
+}
+
+int free(char* ptr) {
+    return (void*)syscall_invoke_1(SYSCALL_FREE, ptr);
+}

@@ -2,7 +2,7 @@ export SHELL := /bin/bash
 
 AS = nasm
 AFLAGS_16 = -f bin
-AFLAGS_32 = -f elf32 -F dwarf -g
+AFLAGS_32 = -f elf32 -g
 
 CC = gcc
 CFLAGS = -m32 -c -ffreestanding -mgeneral-regs-only -g -ggdb
@@ -77,8 +77,8 @@ copy-files: $(FILESYSTEM) programs
 .ONESHELL:
 $(FILESYSTEM):
 	sudo mkfs.fat -F 12 -C $@ 1024
-	sudo losetup /dev/loop0 $@
-	sudo mount -o uid=1000 -t msdos /dev/loop0 $(FSMOUNTDIR)
+	sudo losetup /dev/loop10 $@
+	sudo mount -o uid=1000 -t msdos /dev/loop10 $(FSMOUNTDIR)
 
 	@echo Created filesystem image in $(FILESYSTEM)
 
@@ -90,7 +90,7 @@ fs-clean:
 	@-sudo umount -l fs/mountpoint
 	@-sudo umount -l /mnt/c/users/ricky/development/c_c++/kernel/fs/mountpoint
 	@-sudo umount -l /mnt/c/Users/Ricky/Development/C_C++/kernel/fs/mountpoint
-	@-sudo losetup -d /dev/loop0
+	@-sudo losetup -d /dev/loop10
 	@-rm fs/filesystem.img
 
 clean: fs-clean

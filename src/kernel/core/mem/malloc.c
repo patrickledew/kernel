@@ -106,6 +106,9 @@ int mfree(uint8_t* addr, int pid) {
 
 // Free all pages currently mapped with blocks. Done when a process exits.
 void malloc_cleanup(MallocInfo* malloc_info) {
+    if (malloc_info == 0) {
+        return; // Malloc wasn't initialized to begin with, no need to clean up
+    }
     // Free all pages currently mapped with blocks
     // This is done when a process exits
     for (Block* block = malloc_info->start; block != 0; block = block->next) {

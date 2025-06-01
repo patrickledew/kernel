@@ -2,29 +2,36 @@
 #include "loader.h"
 #include "core/mem/vmem.h"
 #include "core/mem/palloc.h"
+#include "util/panic.h"
 
-int pid_counter = 1; // Start at 1 so first process is PID=1
 int cur_pid = 0;
-ProcessControlBlock processes[100];
+ProcessControlBlock processes[MAX_PROCESSES] = {0}; // Initialize all processes to 0
 
 ProcessControlBlock* process_get(int pid) {
-    if (pid < 0 || pid >= 100) {
+    if (pid < 0 || pid >= MAX_PROCESSES) {
         return 0;
     }
     return &processes[pid];
 }
 
-int exec(char* path) {
+int process_exec(char* path) {
     // Load program into memory and setup page tables
     ProgramDescriptor program;
     load_program(path, &program);
 
     // Create process control block
-    ProcessControlBlock* pcb = &processes[pid_counter];
-    pcb->pid = pid_counter++;
+    ProcessControlBlock* pcb;
+    int i;
+    for (i = 1; i < MAX_PROCESSES; i++) {
+        pcb = &processes[i];
+        if (pcb->state == PROC_STATE_STOPPED) {
+            break;
+        }
+    }
+    pcb->pid = i;
     pcb->state = PROC_STATE_RUNNING;
     pcb->page_directory = program.page_directory;
-    pcb->priority = 0; // Unused
+    pcb->parent_pid = 0;
     process_setup_stack(pcb);
     process_regs_init(pcb);
     pcb->regs.eip = (uint32_t)program.entry_point;
@@ -35,18 +42,21 @@ int exec(char* path) {
 }
 
 // When a process exits, we need to set its state to stopped, and free up resources.
-// If this is the last process to close, we should loop infinitely.
+// If this is the last process to close, panic to halt the system.
 void process_exit() {
     ProcessControlBlock* pcb = &processes[cur_pid];
     pcb->state = PROC_STATE_STOPPED;
     process_destroy(pcb);
-    pid_counter--;
-    if (pid_counter == 1) {
-        while(1) {}
-    } else {
-        // TODD - implement process scheduling
-        while(1) {}
+    // Find next process to run
+    for (int i = 1; i < MAX_PROCESSES; i++) {
+        if (processes[i].state == PROC_STATE_RUNNING) {
+            process_switch(&processes[i]);
+            return;
+        }
     }
+    // If we didn't find a process to run, we are the last process.
+    panic("Last process exited, halting system.");
+    // TODO - implement a proper shutdown sequence
 }
 void process_setup_stack(ProcessControlBlock* pcb) {
     palloc(0, PROCESS_STACK_SIZE, pcb->page_directory); // Allocate stack at 0x0000
@@ -88,11 +98,13 @@ void process_regs_init(ProcessControlBlock* pcb) {
 
 void process_switch(ProcessControlBlock* pcb) {
     current_page_directory = pcb->page_directory;
+    pcb->state = PROC_STATE_RUNNING;
     context_switch(pcb->pid);
 }
 
 void process_destroy(ProcessControlBlock* pcb) {
     pcb->state = PROC_STATE_STOPPED;
+    malloc_cleanup(pcb->malloc_info);
     vmem_pd_destroy(pcb->page_directory);
 }
 
@@ -102,7 +114,7 @@ void process_yield() {
     // Find next running process, and switch to it.
     // TODO implement actual process scheduling
     // We start at 1, since PID 0 stores the kernel's state before the first process is switched to.
-    for (int i = 1; i < 100; i++) {
+    for (int i = 1; i < MAX_PROCESSES; i++) {
         if (processes[i].pid != cur_pid && processes[i].state == PROC_STATE_RUNNING) {
             process_switch(&processes[i]);
             return;
@@ -112,12 +124,5 @@ void process_yield() {
 }
 
 void process_kill(ProcessControlBlock* pcb) {
-    // Problem: if we kill the current process, we will likely unmap the pages for the process itself.
-    // This will cause a page fault.
-
-    // BUT... if we switch to a new process, it will start executing other irrelevant code.
-    // I guess we mark the process as stopped and then yield? Then cleanup later?
-
     process_destroy(pcb);
-    pid_counter--;
 }

@@ -36,6 +36,7 @@ extern uint32_t _KERNEL_PAGE_DIRECTORY_PHYS[PAGE_TABLE_ENTRIES]; // each entry c
 extern uint32_t _KERNEL_PAGE_TABLE_PHYS[PAGE_TABLE_ENTRIES]; // each entry corresponds to 1 page (0x1000 bytes)
 
 extern uint32_t* current_page_directory;
+extern uint32_t* kernel_page_directory;
 
 void vmem_init();
 void vmem_load(uint32_t* page_directory);

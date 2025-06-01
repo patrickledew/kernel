@@ -54,7 +54,7 @@ void fs_test() {
     memfill(buf, 8192, 0);
     assert_not_i(-1, read(fd, buf, 8192));
     for (int i = 0; i < 8192; i++) {
-        assert_u8(buf[i], 'A');
+        assert_u8('A', buf[i]);
     }
 
     close(fd);

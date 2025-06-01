@@ -19,27 +19,33 @@
             "miDebuggerPath": "/usr/bin/gdb",
             "miDebuggerArgs": "",
             "targetArchitecture": "x86",
-            "customLaunchSetupCommands": [{
-                "text": "target remote localhost:1234",
-                "description": "Connect to QEMU"
-            },
-            {
-                "text": "symbol-file kernel.elf",
-                "description": "Get kernel symbols"
-            },
-            {
-                "text": "add-symbol-file ../src/programs/bin/hello.elf",
-                "description": "Load program symbol file for hello.c"
-            },
-            {
-                "text": "add-symbol-file ../src/programs/bin/second.elf",
-                "description": "Load program symbol file for second.c"
-            },
-            {
-                "text": "break kmain",
-                "description": "Set breakpoint at kmain"
-            }],
-            "preLaunchTask": "Launch QEMU (Debug)"
+            "customLaunchSetupCommands": [
+                {
+                    "text": "-enable-pretty-printing",
+                    "description": "Enable pretty printing in GDB"
+                },
+                {
+                    "text": "target remote localhost:1234",
+                    "description": "Connect to QEMU"
+                },
+                {
+                    "text": "symbol-file kernel.elf",
+                    "description": "Get kernel symbols"
+                },
+                {
+                    "text": "add-symbol-file ../src/programs/bin/hello.elf",
+                    "description": "Load program symbol file for hello.c"
+                },
+                {
+                    "text": "add-symbol-file ../src/programs/bin/second.elf",
+                    "description": "Load program symbol file for second.c"
+                },
+                {
+                    "text": "break kmain",
+                    "description": "Set breakpoint at kmain"
+                }
+            ],
+            "preLaunchTask": "Launch QEMU (Debug)",
         }
     ]
 }

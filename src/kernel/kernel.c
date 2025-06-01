@@ -95,8 +95,8 @@ void kmain() {
     // elf_test();
     // loader_test("/HELLO.ELF");
     fat_dbg_print_rootdir();
-    malloc_test();
-    // exec("/HELLO.ELF");
+    // malloc_test();
+    process_exec("/HELLO.ELF");
     // palloc_test();
     /**
      * -=-=-=-=-=-=-=-=-=-=-=-=-=-=-
