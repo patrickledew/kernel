@@ -22,3 +22,5 @@ void shell_loop();
 void shell_exec(char* command);
 void shell_print_prompt();
 void shell_print_help();
+
+#endif

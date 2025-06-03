@@ -12,6 +12,7 @@
 #define PROC_H
 
 #include "types.h"
+#include "core/fs/fs.h"
 
 typedef struct ProcessControlBlock ProcessControlBlock;
 
@@ -51,7 +52,8 @@ typedef struct ProcessControlBlock {
     uint32_t stack_base;     // Stack pointer
     uint32_t stack_size;    // Size of process stack
     uint32_t status;        // Exit status
-    MallocInfo* malloc_info; // Pointer to info needed by malloc - will be initialized on first call to malloc()
+    Heap* heap; // Pointer to info needed by malloc - will be initialized on first call to malloc()
+    FileDescriptor* fd_table; // Pointer to the process's file descriptor table
 } __attribute__((packed)) ProcessControlBlock;
 
 #define PROCESS_STACK_SIZE 0x1000

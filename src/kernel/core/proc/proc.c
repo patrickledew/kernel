@@ -104,7 +104,7 @@ void process_switch(ProcessControlBlock* pcb) {
 
 void process_destroy(ProcessControlBlock* pcb) {
     pcb->state = PROC_STATE_STOPPED;
-    malloc_cleanup(pcb->malloc_info);
+    malloc_cleanup(pcb->heap);
     vmem_pd_destroy(pcb->page_directory);
 }
 
@@ -112,7 +112,6 @@ int dbg_counter = 0;
 
 void process_yield() {
     // Find next running process, and switch to it.
-    // TODO implement actual process scheduling
     // We start at 1, since PID 0 stores the kernel's state before the first process is switched to.
     for (int i = 1; i < MAX_PROCESSES; i++) {
         if (processes[i].pid != cur_pid && processes[i].state == PROC_STATE_RUNNING) {

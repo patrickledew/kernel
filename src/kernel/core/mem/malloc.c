@@ -15,39 +15,39 @@ uint8_t* malloc(size_t size, int pid) {
     // Get the process this request is for
     ProcessControlBlock* pcb = process_get(pid);
     
-    // If this is the first call to malloc, initialize the malloc info
-    if (!pcb->malloc_info) {
+    // If this is the first call to malloc, initialize the heap
+    if (!pcb->heap) {
         #ifdef MALLOC_DBG
-        log_info("malloc: first call to malloc, initializing malloc info.");
+        log_info("malloc: first call to malloc, initializing heap.");
         #endif
         malloc_init(pcb);
     }
     
-    malloc_debug_blocks(pcb->malloc_info);
+    malloc_debug_blocks(pcb->heap);
     // Find a free block of memory
-    Block* block = pcb->malloc_info->start;
+    Block* block = pcb->heap->start;
     uint8_t* addr = 0;    
     
-    if (size <= pcb->malloc_info->available) {
-        addr = malloc_reserve_existing(size, pcb->malloc_info);
+    if (size <= pcb->heap->available) {
+        addr = malloc_reserve_existing(size, pcb->heap);
     }
 
     
     while (addr == 0) {
-        if (pcb->malloc_info->arena_size * 2 > MALLOC_MAX_ARENA_SIZE) {
+        if (pcb->heap->arena_size * 2 > MALLOC_MAX_ARENA_SIZE) {
             // Out of memory, cannot double the arena size
             malloc_oom(__FUNCTION__);
         }
         #ifdef MALLOC_DBG
-        log_number("malloc: doubling arena size to", pcb->malloc_info->arena_size * 2, 16);
+        log_number("malloc: doubling arena size to", pcb->heap->arena_size * 2, 16);
         #endif
-        malloc_double_arena(pcb->malloc_info);
+        malloc_double_arena(pcb->heap);
         // Try to reserve again
-        addr = malloc_reserve_existing(size, pcb->malloc_info);
+        addr = malloc_reserve_existing(size, pcb->heap);
     }
     #ifdef MALLOC_DBG
     // log_number("malloc: reserved addr", (uint32_t)addr, 16);
-    malloc_debug_blocks(pcb->malloc_info);
+    malloc_debug_blocks(pcb->heap);
     #endif
     __asm__("sti");
 
@@ -62,32 +62,32 @@ int mfree(uint8_t* addr, int pid) {
  // Get the process this request is for
     ProcessControlBlock* pcb = process_get(pid);
     
-    // If this is the first call to malloc, initialize the malloc info
-    if (!pcb->malloc_info) {
+    // If this is the first call to malloc, initialize the heap
+    if (!pcb->heap) {
         malloc_init(pcb);
     }
     
     // Find the block to free
-    Block* block = pcb->malloc_info->start;
+    Block* block = pcb->heap->start;
     Block* prev = 0;
     while (block != 0) {
         if (block->addr == addr) {
             // Found the block to free
             block->used = false;
-            pcb->malloc_info->available += block->size;
-            pcb->malloc_info->num_blocks_reserved--;
+            pcb->heap->available += block->size;
+            pcb->heap->num_blocks_reserved--;
 
             // Try to merge with next block
             if (block->next != 0 && !block->next->used && block->next->size == block->size) {
-                malloc_merge_blocks(block, block->next, pcb->malloc_info);
+                malloc_merge_blocks(block, block->next, pcb->heap);
 
             }
             // Try to merge with previous block
             else if (prev != 0 && !prev->used && prev->size == block->size) {
-                malloc_merge_blocks(prev, block, pcb->malloc_info);
+                malloc_merge_blocks(prev, block, pcb->heap);
             }
             #ifdef MALLOC_DBG
-            malloc_debug_blocks(pcb->malloc_info);
+            malloc_debug_blocks(pcb->heap);
             #endif
             __asm__("sti");
             return 0;
@@ -97,7 +97,7 @@ int mfree(uint8_t* addr, int pid) {
     }
     #ifdef MALLOC_DBG
     log_info("mfree: block not found");
-    malloc_debug_blocks(pcb->malloc_info);
+    malloc_debug_blocks(pcb->heap);
     #endif
     __asm__("sti");
 
@@ -105,42 +105,42 @@ int mfree(uint8_t* addr, int pid) {
 }
 
 // Free all pages currently mapped with blocks. Done when a process exits.
-void malloc_cleanup(MallocInfo* malloc_info) {
-    if (malloc_info == 0) {
+void malloc_cleanup(Heap* heap) {
+    if (heap == 0) {
         return; // Malloc wasn't initialized to begin with, no need to clean up
     }
     // Free all pages currently mapped with blocks
     // This is done when a process exits
-    for (Block* block = malloc_info->start; block != 0; block = block->next) {
+    for (Block* block = heap->start; block != 0; block = block->next) {
         if (block->size != 0) {
             // Free the page
-            pfree(block->addr, malloc_info->page_directory);
+            pfree(block->addr, heap->page_directory);
         }
     }
 
     // Free the block pool pages
-    BlockPool* block_pool = malloc_info->bp_start;
+    BlockPool* block_pool = heap->bp_start;
     BlockPool* next = block_pool->next;
     while (block_pool != 0) {
         // Free the page
-        pfree((uint8_t*)block_pool, malloc_info->page_directory);
+        pfree((uint8_t*)block_pool, heap->page_directory);
         block_pool = next;
         if (block_pool != 0) {
             next = block_pool->next;
         }
     }
 
-    // Finally, free the malloc info page
-    pfree((uint8_t*)malloc_info, malloc_info->page_directory);
+    // Finally, free the heap page
+    pfree((uint8_t*)heap, heap->page_directory);
 }
 
 // #define MALLOC_DBG_BLOCKS_LIST
 #define MALLOC_DBG_BLOCKS_STAT
 
-void malloc_debug_blocks(MallocInfo* malloc_info) {
+void malloc_debug_blocks(Heap* heap) {
     #ifdef MALLOC_DBG
     #ifdef MALLOC_DBG_BLOCKS_LIST
-    Block* block = malloc_info->start;
+    Block* block = heap->start;
     while (block != 0) {
         print("malloc: block [");
         print_num((uint32_t)block->addr, 16); print("-");
@@ -160,37 +160,37 @@ void malloc_debug_blocks(MallocInfo* malloc_info) {
     #endif
     #ifdef MALLOC_DBG_BLOCKS_STAT
     print("malloc: AVL= ");
-    print_num(malloc_info->available, 16);
+    print_num(heap->available, 16);
     print(", ARN=");
-    print_num(malloc_info->arena_size, 16);
+    print_num(heap->arena_size, 16);
     print(", Blocks: M="); // Mapped blocks
-    print_num(malloc_info->num_blocks_in_use, 10);
+    print_num(heap->num_blocks_in_use, 10);
     print(" R="); // Reserved blocks
-    print_num(malloc_info->num_blocks_reserved, 10);
+    print_num(heap->num_blocks_reserved, 10);
     print(" T="); // Total blocks
-    print_num(malloc_info->num_blocks, 10);
+    print_num(heap->num_blocks, 10);
     println("");
     #endif
     #endif
 }
 
-void malloc_double_arena(MallocInfo* malloc_info) {
+void malloc_double_arena(Heap* heap) {
     // Double the size of the malloc pool
-    int pages_needed = malloc_info->arena_size / PAGE_SIZE;
+    int pages_needed = heap->arena_size / PAGE_SIZE;
 
-    malloc_alloc_pages(malloc_info, pages_needed);
+    malloc_alloc_pages(heap, pages_needed);
 }
 
 
-uint8_t* malloc_reserve_existing(size_t size, MallocInfo* malloc_info) {
-    Block* block = malloc_info->start;
+uint8_t* malloc_reserve_existing(size_t size, Heap* heap) {
+    Block* block = heap->start;
     while (block != 0) {
         if (!block->used && block->size >= size) {
             // Found a free block
-            Block* reserved = malloc_reserve_block(block, size, malloc_info);
-            malloc_info->available -= reserved->size;
+            Block* reserved = malloc_reserve_block(block, size, heap);
+            heap->available -= reserved->size;
             reserved->used = true;
-            malloc_info->num_blocks_reserved++;
+            heap->num_blocks_reserved++;
             return reserved->addr;
         }
         block = block->next;
@@ -198,7 +198,7 @@ uint8_t* malloc_reserve_existing(size_t size, MallocInfo* malloc_info) {
     return 0;
 }
 
-Block* malloc_reserve_block(Block* parent, size_t size, MallocInfo* malloc_info) {
+Block* malloc_reserve_block(Block* parent, size_t size, Heap* heap) {
     if (parent->size < size) {
         // Not enough space in the parent block
         return 0;
@@ -210,17 +210,17 @@ Block* malloc_reserve_block(Block* parent, size_t size, MallocInfo* malloc_info)
     }
     
     // Split the parent block into two blocks
-    malloc_split_block(parent, malloc_info);
+    malloc_split_block(parent, heap);
     Block* left = parent;
     Block* right = left->next;
     
     // Try reserving in the left block first
-    Block* reserved_in_left = malloc_reserve_block(left, size, malloc_info);
+    Block* reserved_in_left = malloc_reserve_block(left, size, heap);
     if (reserved_in_left != 0) {
         return reserved_in_left;
     }
     // Try reserving in the right block
-    Block* reserved_in_right = malloc_reserve_block(right, size, malloc_info);
+    Block* reserved_in_right = malloc_reserve_block(right, size, heap);
     if (reserved_in_right != 0) {
         return reserved_in_right;
     }
@@ -229,9 +229,9 @@ Block* malloc_reserve_block(Block* parent, size_t size, MallocInfo* malloc_info)
 }
 
 // Split a block of memory into two blocks
-void malloc_split_block(Block* block, MallocInfo* malloc_info) {
+void malloc_split_block(Block* block, Heap* heap) {
     // Allocate a new Block struct for the right half
-    Block* new_block = block_pool_alloc(malloc_info);
+    Block* new_block = block_pool_alloc(heap);
     // Set the address and size of the new block
     // The new block will be half the size of the original block
     new_block->addr = block->addr + (block->size / 2);
@@ -242,42 +242,42 @@ void malloc_split_block(Block* block, MallocInfo* malloc_info) {
     block->next = new_block;
     block->size = block->size / 2;
 
-    malloc_info->num_blocks_in_use++;
+    heap->num_blocks_in_use++;
 }
 
-void malloc_merge_blocks(Block* left, Block* right, MallocInfo* malloc_info) {
+void malloc_merge_blocks(Block* left, Block* right, Heap* heap) {
     // Merge two blocks of memory into one
     left->size += right->size;
     left->next = right->next;
 
-    block_mark_unused(right, malloc_info);
+    block_mark_unused(right, heap);
 }
 
 void malloc_init(ProcessControlBlock* pcb) {
-    // First call to malloc, initialize the malloc info
+    // First call to malloc, initialize the heap
     uint8_t* info_page = palloc_next_free(pcb->page_directory);
     uint8_t* data_page = palloc_next_free(pcb->page_directory);
 
     if (info_page == 0 || data_page == 0) {
         malloc_oom(__FUNCTION__);
     }
-    pcb->malloc_info = (MallocInfo*)info_page; // Use first few bytes of the first page to store MallocInfo
-    pcb->malloc_info->page_directory = pcb->page_directory;
-    pcb->malloc_info->available = PAGE_SIZE;
-    pcb->malloc_info->arena_size = PAGE_SIZE;
+    pcb->heap = (Heap*)info_page; // Use first few bytes of the first page to store Heap
+    pcb->heap->page_directory = pcb->page_directory;
+    pcb->heap->available = PAGE_SIZE;
+    pcb->heap->arena_size = PAGE_SIZE;
     // Initialize first block - this will span the entire page
 
-    block_pool_init(data_page, pcb->malloc_info);
-    pcb->malloc_info->start = pcb->malloc_info->bp_start->blocks;
+    block_pool_init(data_page, pcb->heap);
+    pcb->heap->start = pcb->heap->bp_start->blocks;
     
 }
 
-void block_pool_init(uint8_t* data_start, MallocInfo* malloc_info) {
+void block_pool_init(uint8_t* data_start, Heap* heap) {
     // Initialize the block pool
-    malloc_info->bp_start = block_pool_new();
+    heap->bp_start = block_pool_new();
     
     // Initialize first block
-    Block* first_block = block_pool_alloc(malloc_info);
+    Block* first_block = block_pool_alloc(heap);
 
     first_block->addr = data_start;
     first_block->size = PAGE_SIZE;
@@ -285,9 +285,9 @@ void block_pool_init(uint8_t* data_start, MallocInfo* malloc_info) {
     first_block->next = 0;
 
     // Update counters
-    malloc_info->num_blocks = BLOCK_POOL_CAPACITY;
-    malloc_info->num_blocks_in_use = 1; // First block descriptor is "in use" (not reserved yet, but allocated)
-    malloc_info->num_blocks_reserved = 0;
+    heap->num_blocks = BLOCK_POOL_CAPACITY;
+    heap->num_blocks_in_use = 1; // First block descriptor is "in use" (not reserved yet, but allocated)
+    heap->num_blocks_reserved = 0;
 }
 
 
@@ -305,9 +305,9 @@ BlockPool* block_pool_new() {
 
 // Allocate a block within the block pool, and allocate new page if needed
 // Does not set any data on the allocated block, which could have been reused
-Block* block_pool_alloc(MallocInfo* malloc_info) {
+Block* block_pool_alloc(Heap* heap) {
     // 1. Try to find an already allocated block that isn't being used (size = 0)
-    BlockPool* bp = malloc_info->bp_start;
+    BlockPool* bp = heap->bp_start;
     while (true) {
         Block* block = bp->blocks;
         // Iterate over the blocks in the block pool
@@ -333,11 +333,11 @@ Block* block_pool_alloc(MallocInfo* malloc_info) {
 
     Block* new_block = (Block*)&new_pool->blocks[0];
     // Update the block pool info
-    malloc_info->num_blocks += BLOCK_POOL_CAPACITY;
+    heap->num_blocks += BLOCK_POOL_CAPACITY;
     return new_block;
 }
 
-void try_free_block_pool(BlockPool* block_pool, MallocInfo* malloc_info) {
+void try_free_block_pool(BlockPool* block_pool, Heap* heap) {
     // Check if the block pool is empty
     Block* block = block_pool->blocks;
     for (size_t i = 0; i < BLOCK_POOL_CAPACITY; i++) {
@@ -348,25 +348,25 @@ void try_free_block_pool(BlockPool* block_pool, MallocInfo* malloc_info) {
         block++;
     }
     // Free the block pool
-    pfree((uint8_t*)block_pool, malloc_info->page_directory);
-    malloc_info->num_blocks -= BLOCK_POOL_CAPACITY;
+    pfree((uint8_t*)block_pool, heap->page_directory);
+    heap->num_blocks -= BLOCK_POOL_CAPACITY;
 }
 
 // For now, we don't dealloc block descriptors, just mark them as unused
-void block_mark_unused(Block* block, MallocInfo* malloc_info) {
+void block_mark_unused(Block* block, Heap* heap) {
     block->size = 0;
     block->used = false;
     block->next = 0;
-    malloc_info->num_blocks_in_use--;
+    heap->num_blocks_in_use--;
 
     BlockPool* block_pool = (BlockPool*)((uint32_t)block & ~0xFFF); // Get the block pool address (page aligned)
-    try_free_block_pool(block_pool, malloc_info);
+    try_free_block_pool(block_pool, heap);
 }
 
-void malloc_alloc_pages(MallocInfo* malloc_info, size_t num_pages) {
+void malloc_alloc_pages(Heap* heap, size_t num_pages) {
     uint8_t* start_addr = 0;
     for (size_t i = 0; i < num_pages; i++) {
-        uint8_t* addr = palloc_next_free(malloc_info->page_directory);
+        uint8_t* addr = palloc_next_free(heap->page_directory);
         
         if (addr == 0) {
             malloc_oom(__FUNCTION__);
@@ -377,7 +377,7 @@ void malloc_alloc_pages(MallocInfo* malloc_info, size_t num_pages) {
         }
     }
     // Now setup a block for the newly allocated pages
-    Block* last_block = malloc_get_last_block(malloc_info->start);
+    Block* last_block = malloc_get_last_block(heap->start);
     Block* new_block = (Block*)(last_block + sizeof(Block));
     new_block->addr = start_addr;
     new_block->size = num_pages * PAGE_SIZE;
@@ -385,9 +385,9 @@ void malloc_alloc_pages(MallocInfo* malloc_info, size_t num_pages) {
     new_block->next = 0;
     last_block->next = new_block;
 
-    // Update the malloc info  
-    malloc_info->arena_size += num_pages * PAGE_SIZE;
-    malloc_info->available += num_pages * PAGE_SIZE;
+    // Update the heap  
+    heap->arena_size += num_pages * PAGE_SIZE;
+    heap->available += num_pages * PAGE_SIZE;
 }
 
 Block* malloc_get_last_block(Block* block) {

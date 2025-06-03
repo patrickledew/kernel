@@ -17,7 +17,7 @@ void loader_test(char* path) {
 // Loads an ELF file into memory and allocates memory for each segment in the executable.
 // Returns 0 on success, -1 on failure.
 int load_program(char* path, ProgramDescriptor* program) {
-    int fd = open(path, 0);
+    int fd = file_open(path);
     if (fd == -1) {
         return -1;
     }
@@ -26,10 +26,10 @@ int load_program(char* path, ProgramDescriptor* program) {
     program->page_directory = vmem_pd_create();
 
     // Read in binary
-    program->size = (uint32_t)fsize(fd);
+    program->size = (uint32_t)file_size(fd);
     program->data = (uint8_t*)alloc(program->size);
-    read(fd, program->data, program->size);
-    close(fd);
+    file_read(fd, program->data, program->size, 0);
+    file_close(fd);
 
     // Parse ELF header
     ElfHeader header;

@@ -6,13 +6,13 @@
 #include "util/logging.h"
 
 void elf_test() {
-    int fd = open("/HELLO.ELF", 0);
+    int fd = file_open("/HELLO.ELF");
 
-    int size = fsize(fd);
+    int size = file_size(fd);
     assert_not_i(size, -1);
 
     uint8_t* buffer = (uint8_t*)alloc(size);
-    read(fd, buffer, size);
+    file_read(fd, buffer, size, 0);
 
     ElfHeader header;
     elf_parse_header(buffer, &header);
@@ -51,5 +51,5 @@ void elf_test() {
     }
 
     free(buffer);
-    close(fd);
+    file_close(fd);
 }

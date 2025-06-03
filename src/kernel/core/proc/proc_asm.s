@@ -1,6 +1,6 @@
 [bits 32]
 
-%define PCB_SIZE 96 ; Size of ProcessControlBlock in bytes
+%define PCB_SIZE 100 ; Size of ProcessControlBlock in bytes
 
 %define PCB_REGS_SIZE 64 ; Size of Registers struct in bytes
 %define PCB_REG_EAX 0
