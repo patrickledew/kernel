@@ -76,6 +76,7 @@ void kmain() {
     timer_interval_set(10, print_cursor_refresh);
     timer_interval_set(10, alloc_dbg);
     timer_interval_set(10, palloc_dbg);
+    timer_interval_set(10, proc_dbg);
     keyboard_init(); // Initialize keyboard driver
     disk_init(); // Initialize ATA disk driver
     syscall_init();
@@ -94,10 +95,12 @@ void kmain() {
     // vmem_test();
     // elf_test();
     // loader_test("/HELLO.ELF");
-    fat_dbg_print_rootdir();
     // malloc_test();
-    process_exec("/HELLO.ELF");
     // palloc_test();
+    
+    fat_dbg_print_rootdir();
+    // process_exec("/HELLO.ELF");
+    process_exec("/SHELL.ELF");
     /**
      * -=-=-=-=-=-=-=-=-=-=-=-=-=-=-
      */

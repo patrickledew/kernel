@@ -16,7 +16,6 @@ SYSCALL_DEFINE1(print, char*, str) {
 SYSCALL_DEFINE1(exec, char*, path) {
     log_info("Executing process:");
     log_info(path);
-    int_enable();
     process_exec(path);
     return 0;
 }
@@ -46,6 +45,31 @@ SYSCALL_DEFINE1(free, uint8_t*, addr) {
     return status;
 }
 
+SYSCALL_DEFINE1(open, char*, filename) {
+    log_info("syscall_open:");
+    log_info(filename);
+    int fd = open(filename, 0, cur_pid);
+    return fd;
+}
+
+SYSCALL_DEFINE1(close, int, fd) {
+    log_number("syscall_close: fd", fd, 10);
+    int status = close(fd, cur_pid);
+    return status;
+}
+
+SYSCALL_DEFINE3(read, int, fd, uint32_t, size, uint8_t*, dest) {
+    int bytes_read = read(fd, dest, size, cur_pid);
+    // For simplicity, we just return the number of bytes read
+    return bytes_read;
+}
+
+SYSCALL_DEFINE3(write, int, fd, uint32_t, size, uint8_t*, src) {
+    log_number("syscall_write: fd", fd, 10);
+    int bytes_written = write(fd, src, size, cur_pid);
+    // For simplicity, we just return the number of bytes written
+    return bytes_written;
+}
 
 syscall_table_entry syscall_table[256] = {
     [0 ... 255] = {syscall_noop, 0},
@@ -55,6 +79,10 @@ syscall_table_entry syscall_table[256] = {
     __SYSCALL(4, exit, 0),
     __SYSCALL(5, malloc, 1),
     __SYSCALL(6, free, 1),
+    __SYSCALL(7, open, 1),
+    __SYSCALL(8, close, 1),
+    __SYSCALL(9, read, 3),
+    __SYSCALL(10, write, 3),
 };
 
 void syscall_init() {

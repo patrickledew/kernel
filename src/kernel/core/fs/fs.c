@@ -34,8 +34,6 @@ int file_open(char* path) {
             strcpy(entry.filename, filename_trimmed, 8); // Copy filename
             strsplit(filename_trimmed, ' ', filename_trimmed, 0); // Trim spaces
 
-            // log_info(filename_trimmed);
-
             if (strcmp(filename_trimmed, path_segment, 0) == 0 && entry.attributes & FAT_ATTRIBUTE_MASK_SUBDIR) {
                 // Matched filename. Try reading directory.
                 found = TRUE;
@@ -89,7 +87,7 @@ int file_open(char* path) {
         return -1;
     }
 
-    // Now we have the file. Create the file descriptor!
+    // Now add to the file table.
 
     File file;
     file.parent_directory = current_dir;
@@ -164,8 +162,15 @@ void fd_table_init(int pid) {
     
     // Initialize the file descriptor table. First 3 are reserved:
     // 0 = stdin
+    pcb->fd_table[0].used = TRUE;
+    pcb->fd_table[0].file = 0;
     // 1 = stdout
+    pcb->fd_table[1].used = TRUE;
+    pcb->fd_table[0].file = 0;
+
     // 2 = stderr
+    // Unused
+
     for (int i = 3; i < MAX_FILE_DESCRIPTORS; i++) {
         pcb->fd_table[i].used = FALSE;
     }
@@ -175,6 +180,18 @@ void fd_table_destroy(int pid) {
     // Get process file descriptor table
     ProcessControlBlock* pcb = process_get(pid);
     if (!pcb->fd_table) return; // No fd table to destroy
+
+    if (pcb->fd_table[0].file) {
+        // Free the ring buffer for stdin
+        mfree((uint8_t*)pcb->fd_table[0].file, pid);
+        pcb->fd_table[0].file = 0; // Clear pointer
+    }
+
+    if (pcb->fd_table[1].file) {
+        // Free the ring buffer for stdout
+        mfree((uint8_t*)pcb->fd_table[1].file, pid);
+        pcb->fd_table[1].file = 0; // Clear pointer
+    }
 
     // Free the file descriptor table
     mfree((uint8_t*)pcb->fd_table, pid);
@@ -220,6 +237,9 @@ int open(char *filename, uint8_t flags, int pid)
 }
 // Close file descriptor
 int close(int fd, int pid) {
+    if (fd <= 1 || fd >= MAX_FILE_DESCRIPTORS) {
+        return -1; // Invalid file descriptor
+    }
     // Get process file descriptor table
     ProcessControlBlock* pcb = process_get(pid);
     if (!pcb->fd_table || fd < 0 || fd >= MAX_FILE_DESCRIPTORS) return -1;
@@ -242,45 +262,108 @@ int close(int fd, int pid) {
     return 0; // Success
 }
 
+int read_std(FileDescriptor* fd, uint8_t* dest, uint32_t size, int pid) {
+
+    // For stdin/stdout, the file pointer is overridden to point to the ring buffer.
+    uint8_t* buffer = (uint8_t*)fd->file;
+    if (!buffer) {
+        return 0; // Buffer not initialized yet, return 0 bytes read
+    }
+
+    for (int i = 0; i < size; i++) {
+        // Make sure we don't read past the write position
+        if (fd->position == fd->write_position) {
+            return i; // Buffer is empty, return number of bytes read
+        }
+
+        // Read from the ring buffer
+        dest[i] = buffer[fd->position];
+        fd->position = (fd->position + 1) % PAGE_SIZE; // Wrap around
+    }
+
+    return size; // Return number of bytes read
+}
+
+int write_std(FileDescriptor* fd, uint8_t* src, uint32_t size, int pid) {
+    uint8_t* buffer = (uint8_t*)fd->file;
+    if (!fd->file) {
+        // Buffer not initialized yet, allocate and initialize it
+        buffer = fd->file = malloc(PAGE_SIZE, pid); // Allocate a page for the ring buffer
+        // log_info("write_std: Allocated ring buffer for stdin/stdout.");
+        // log_number("Ring buffer address", (uint32_t)buffer, 16);
+    }
+    for (int i = 0; i < size; i++) {
+        // // Make sure we don't write past the read position (from the back)
+        // if ((fd->write_position + 1) % PAGE_SIZE == fd->position) {
+        //     return i; // Buffer is full, return number of bytes written
+        // }
+        // Write to the ring buffer
+        buffer[fd->write_position] = src[i];
+        
+        fd->write_position = (fd->write_position + 1) % PAGE_SIZE; // Wrap around
+    }
+    return size; // Return number of bytes written
+}
 // Read from file descriptor at current position
 int read(int fd, uint8_t* dest, uint32_t size, int pid) {
+    if (fd < 0 || fd >= MAX_FILE_DESCRIPTORS) {
+        return -1; // Invalid file descriptor
+    }
+
     // Get process file descriptor table
     ProcessControlBlock* pcb = process_get(pid);
-    if (!pcb->fd_table || fd < 0 || fd >= MAX_FILE_DESCRIPTORS) return -1;
-
+    if (!pcb->fd_table) fd_table_init(pid);
+    
     // Get the file descriptor
     FileDescriptor* file_desc = &pcb->fd_table[fd];
     if (!file_desc->used) return -1; // File descriptor not in use
-
-    // Read from the file
-    int bytes_read = file_read(file_desc->ft_idx, dest, size, file_desc->position);
     
+    int bytes_read = 0;
+    if (fd <= 1) {
+        bytes_read = read_std(file_desc, dest, size, pid);
+    } else {
+        // Read from the file
+        bytes_read = file_read(file_desc->ft_idx, dest, size, file_desc->position);
+    }
+
     if (bytes_read < 0) return -1; // Read error
 
-    // Update the position in the file descriptor
-    file_desc->position += bytes_read;
+    if (fd > 1) {
+        // Update the position in the file descriptor - note, this is done in write_std for stdin/stdout
+        file_desc->position += bytes_read;
+    }
 
     return bytes_read; // Return number of bytes read
 }
 
 // Write to file descriptor at current position
 int write(int fd, uint8_t* src, uint32_t size, int pid) {
+    if (fd < 0 || fd >= MAX_FILE_DESCRIPTORS) {
+        return -1; // Invalid file descriptor
+    }
+
     // Get process file descriptor table
     ProcessControlBlock* pcb = process_get(pid);
-    if (!pcb->fd_table || fd < 0 || fd >= MAX_FILE_DESCRIPTORS) return -1;
-
+    if (!pcb->fd_table) fd_table_init(pid);
+    
     // Get the file descriptor
     FileDescriptor* file_desc = &pcb->fd_table[fd];
     if (!file_desc->used) return -1; // File descriptor not in use
 
     // Write to the file
-    int bytes_written = file_write(file_desc->ft_idx, src, size, file_desc->position);
-    
+    int bytes_written;
+    if (fd <= 1) {
+        bytes_written = write_std(file_desc, src, size, pid);
+    } else {
+        // Read from the file
+        bytes_written = file_write(file_desc->ft_idx, src, size, file_desc->write_position);
+    }
     if (bytes_written < 0) return -1; // Write error
 
-    // Update the position in the file descriptor
-    file_desc->position += bytes_written;
-
+    if (fd > 1) {
+        // Update the position in the file descriptor
+        file_desc->write_position += bytes_written;
+    }
     return bytes_written; // Return number of bytes written
 }
 

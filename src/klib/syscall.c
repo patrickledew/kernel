@@ -17,3 +17,9 @@ int syscall_invoke_2(int syscall_num, int arg1, int arg2) {
     __asm__ ("int $0x80; mov %%eax, %0" : "=r"(ret) : "a"(syscall_num), "b"(arg1), "c"(arg2));
     return ret;
 }
+
+int syscall_invoke_3(int syscall_num, int arg1, int arg2, int arg3) {
+    int ret;
+    __asm__ ("int $0x80; mov %%eax, %0" : "=r"(ret) : "a"(syscall_num), "b"(arg1), "c"(arg2), "d"(arg3));
+    return ret;
+}

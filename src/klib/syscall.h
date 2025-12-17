@@ -28,6 +28,7 @@
 int syscall_invoke_0(int syscall_num);
 int syscall_invoke_1(int syscall_num, int arg1);
 int syscall_invoke_2(int syscall_num, int arg1, int arg2);
+int syscall_invoke_3(int syscall_num, int arg1, int arg2, int arg3);
 
 
 #endif

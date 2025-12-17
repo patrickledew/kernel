@@ -28,6 +28,9 @@
 #define SYSCALL_DEFINE2(name, type1, name1, type2, name2) \
     __attribute__((regparm(0))) int syscall_##name(type1 name1, type2 name2) \
 
+#define SYSCALL_DEFINE3(name, type1, name1, type2, name2, type3, name3) \
+    __attribute__((regparm(0))) int syscall_##name(type1 name1, type2 name2, type3 name3)
+
 // Should be put inside of a table intiializer
 #define __SYSCALL(number, name, num_args) \
 [number] = { syscall_##name, num_args }

@@ -31,8 +31,9 @@ typedef struct {
 // Process-specific file descriptor structure.
 typedef struct {
     int ft_idx; // Index into the file table (file_table)
-    File* file; // Pointer to the file being accessed
-    uint32_t position; // Current position in the file
+    File* file; // Pointer to the file being accessed - NOTE: For stdin/stdout, this is a pointer to the ring buffer that contains stdin/stdout data.
+    uint32_t position; // Current position in the file - For files implemented as ring buffers, this is the read pointer
+    uint32_t write_position; // For ring buffers, this is the write pointer
     uint8_t flags; // Flags for file access (e.g., read, write)
     bool used; // Whether this file descriptor is in use
 } FileDescriptor;
@@ -44,6 +45,14 @@ int file_open(char* filename);
 int file_close(int ft_idx);
 int file_read(int ft_idx, uint8_t* dest, uint32_t size, uint32_t whence); // Read file at current position
 int file_write(int ft_idx, uint8_t* src, uint32_t size, uint32_t whence); // Write file at current position
+int file_size(int fd); // Returns the size of the file in bytes
+
+// Kernel interface for folder operations (manipulating DIRECTORIES)
+int is_dir(char* path); // Returns 1 if path is a directory, 0 if not, and -1 on error
+int dir_create(char* path); // Create a new directory at path
+int dir_remove(char* path); // Remove a directory at path (must be empty)
+int dir_list(char* path, char* buffer, int buffer_size);
+
 
 // Process-specific interface for file operations (manipulating FILE DESCRIPTORS)
 // These take in pids to ensure that the file descriptors are managed per process
@@ -58,6 +67,5 @@ int write(int fd, uint8_t* src, uint32_t size, int pid); // Write to file descri
 int seek(int fd, uint32_t offset, int pid); // Seek to specific offset from start of file
 int tell(int fd, int pid); // Gives the current position in the file
 
-int file_size(int fd); // Returns the size of the file in bytes
 
 #endif

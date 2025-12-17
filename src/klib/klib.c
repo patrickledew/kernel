@@ -22,27 +22,19 @@ void yield() {
 }
 
 int open(char *filename, int flags) {
-    println("open: not implemented.");
-    // return syscall_invoke_2(SYSCALL_OPEN, (int)filename, flags);
-    return -1;
+    return syscall_invoke_1(SYSCALL_OPEN, (int)filename);
 }
 
 int close(int fd) {
-    println("close: not implemented.");
-    // return syscall_invoke_1(SYSCALL_CLOSE, fd);
-    return -1;
+    return syscall_invoke_1(SYSCALL_CLOSE, fd);
 }
 
-int read(int fd, char *buffer, int size) {
-    println("read: not implemented.");
-    // return syscall_invoke_3(SYSCALL_READ, fd, (int)buffer, size);
-    return -1;
+int read(int fd, int size, char *dest) {
+    return syscall_invoke_3(SYSCALL_READ, fd, size, (int)dest);
 }
 
-int write(int fd, char *buffer, int size) {
-    println("write: not implemented.");
-    // return syscall_invoke_3(SYSCALL_WRITE, fd, (int)buffer, size);
-    return -1;
+int write(int fd, int size, char *src) {
+    return syscall_invoke_3(SYSCALL_WRITE, fd, size, (int)src);
 }
 
 int seek(int fd, int offset) {

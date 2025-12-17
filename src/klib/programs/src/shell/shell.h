@@ -1,5 +1,5 @@
-// Userspace shell program running on the kernel.
 
+// Userspace shell program running on the kernel.
 // Syscalls available to us:
 // - exec: Execute a new process
 // - exit: Exit the current process
@@ -21,6 +21,5 @@ void shell_init();
 void shell_loop();
 void shell_exec(char* command);
 void shell_print_prompt();
-void shell_print_help();
 
 #endif

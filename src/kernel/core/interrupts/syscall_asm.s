@@ -20,7 +20,8 @@ syscall_handler:
     push ebp
     push esp
 
-    push ecx ; ecx and ebx are params if applicable
+    push edx ; ebx (param 1), ecx (2), and edx (3) are params if applicable
+    push ecx  
     push ebx
     ; Get the syscall entry from eax
     ; Routine stored in ebx, num args stored in ecx
@@ -32,6 +33,7 @@ syscall_handler:
 
     pop ebx
     pop ecx
+    pop edx 
 
     pop esp
     pop ebp
@@ -50,13 +52,16 @@ syscall_setup_args:
 
 push_args:
     ;; Push arguments based on number of arguments
-    mov edx, ecx
-    sub edx, 2
-    jz two_args
-    mov edx, ecx
-    sub edx, 1
+    cmp ecx, 0
+    jz syscall_invoke ; If no args, return immediately
+    cmp ecx, 1
     jz one_arg
-    jmp syscall_invoke
+    cmp ecx, 2
+    jz two_args
+    cmp ecx, 3
+    jz three_args
+three_args:
+    push dword [ebp + 16] ; param 3
 two_args:
     push dword [ebp + 12] ; param 2
 one_arg:

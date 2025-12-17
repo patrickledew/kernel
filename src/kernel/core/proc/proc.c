@@ -2,6 +2,7 @@
 #include "loader.h"
 #include "core/mem/vmem.h"
 #include "core/mem/palloc.h"
+#include "util/print.h"
 #include "util/panic.h"
 
 int cur_pid = 0;
@@ -17,7 +18,10 @@ ProcessControlBlock* process_get(int pid) {
 int process_exec(char* path) {
     // Load program into memory and setup page tables
     ProgramDescriptor program;
-    load_program(path, &program);
+    int ret = load_program(path, &program);
+    if (ret < 0) {
+        return -1;
+    }
 
     // Create process control block
     ProcessControlBlock* pcb;
@@ -34,6 +38,7 @@ int process_exec(char* path) {
     pcb->parent_pid = 0;
     process_setup_stack(pcb);
     process_regs_init(pcb);
+
     pcb->regs.eip = (uint32_t)program.entry_point;
     destroy_program(&program); // We don't need the program anymore, free its used memory
     
@@ -124,4 +129,15 @@ void process_yield() {
 
 void process_kill(ProcessControlBlock* pcb) {
     process_destroy(pcb);
+}
+
+void proc_dbg() {
+    int col = print_cursor_col_get();
+    int row = print_cursor_row_get();
+
+    print_cursor_set(0, 0);
+    print("Cur PID: ");
+    print_num_u(cur_pid, 10);
+
+    print_cursor_set(row, col);
 }

@@ -77,4 +77,6 @@ void process_destroy(ProcessControlBlock* pcb);
 void process_yield();
 void process_kill(ProcessControlBlock* pcb);
 
+
+void proc_dbg();
 #endif

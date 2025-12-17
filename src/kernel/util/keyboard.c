@@ -4,6 +4,8 @@
 #include "util/print.h"
 #include "core/portio/portio.h"
 #include "core/interrupts/interrupts.h"
+#include "core/fs/fs.h"
+#include "core/proc/proc.h"
 
 void keyboard_init() {
     log_info("keyboard_init: initializing keyboard driver.");
@@ -51,7 +53,10 @@ void keyboard_scancode_recieve() {
 
     char ch = keyboard_scancode_get_char(sc, lshift || rshift);
 
-    if (ch) print_char(ch); 
+    if (ch) {
+        // print_char(ch); 
+        write(0, (uint8_t*)&ch, 1, cur_pid); // Write to stdin
+    }
 }
 
 char keyboard_scancode_get_char(uint8_t scancode, bool shift) {

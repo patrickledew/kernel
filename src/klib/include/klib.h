@@ -20,13 +20,15 @@ void println(char *str);
 int exec(char *path);
 void yield();
 void exit();
-int open(char *filename, int flags);
-int close(int fd);
-int read(int fd, char *buffer, int size);
-int write(int fd, char *buffer, int size);
-int seek(int fd, int offset);
+
 void* malloc(size_t size);
 int free(char* ptr);
+
+int open(char *filename, int flags);
+int close(int fd);
+int read(int fd, int size, char* dest);
+int write(int fd, int size, char* src);
+int seek(int fd, int offset);
 
 #endif
     

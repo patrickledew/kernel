@@ -12,20 +12,19 @@ void test_yield() {
     exec("/SECOND.ELF");
 
     while(true) {
-        print_self();
-        char* str = "Test char: X";
-        for (unsigned char c = '0'; c < '9'; c++) {
-            str[11] = c;
-            println(str);
-        }
+        // print_self();
+        // char* str = "Test char: X";
+        // for (unsigned char c = '0'; c < '9'; c++) {
+        //     str[11] = c;
+        //     println(str);
+        // }
     
         yield();
     }
 }
 
-void main() {
-    print_self();
-    println("HELLO.ELF Malloc Test");
+void test_malloc() {
+     println("HELLO.ELF Malloc Test");
 
     char* ptr = malloc(0x1000);
     if (ptr == 0) {
@@ -57,19 +56,24 @@ void main() {
         exit();
     }
     println("Second malloc succeeded!");
+}
 
+void main() {
+    print_self();
 
-    exec("/SECOND.ELF");
+    // Print the fibbonaci sequence
+    println("Fibonacci sequence:");
+    int a = 0, b = 1;
+    for (int i = 0; i < 10; i++) {
 
-    while (true) {
-        for (int i = 0; i < 0x1000; i++) {
-            ptr[i] = 'A'; // Fill with '1's
-        }
-        ptr[50] = '\0'; // Set last byte to 0
-        yield();
-        println(ptr);
+        char c[2] = {0};
+        c[0] = '0' + a; // Convert int to char
+        println(c);
+
+        int next = a + b;
+        a = b;
+        b = next;
     }
- 
-    println("Exiting process one.");
+    println("Fibonacci sequence complete!");
     exit();
 }
